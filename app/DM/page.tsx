@@ -16,7 +16,11 @@ export default function page() {
     let tl: any;
     const inputRef = useRef<HTMLInputElement | null>(null);
     const [MessHistory, setMessHistory] = useState<Array<Message>>([])
-    let [availableUsers, setAvailableUsers] = useState<any[]>([])
+    let [availableUsers, setAvailableUsers] = useState<any[]>([{
+        id: 'ANBTHPQDGcmiC2qyAAAJ',
+        username: 'Test User',
+        avatar: 'placeholder5.png'
+    }])
     let [selectedChat, setSelectedChat] = useState<null | selectedChatInterface>(null)
 
     const [input, setInput] = useState<userInput>({
@@ -134,11 +138,23 @@ export default function page() {
             // using direct get requests, for testing
             // will be changed to specific websocket connection, that only gets status
             let users: any = await axios.get('/api/dmusers')
-            const avatarusers = users.data.map(user => ({
-                ...user,
-                avatar: `placeholder${Math.floor(Math.random() * 7)}.png`
-            }));
-            setAvailableUsers(avatarusers);
+            // if(users === []) {
+            if (JSON.stringify(users.data) === '[]' || users.data.length == 0) {
+                setAvailableUsers(
+                    [{
+                        id: 'ANBTHPQDGcmiC2qyAAAJ',
+                        username: 'Test User',
+                        avatar: 'placeholder5.png'
+                    }]
+                )
+            } else {
+                console.log(users.data);
+                const avatarusers = users.data.map(user => ({
+                    ...user,
+                    avatar: `placeholder${Math.floor(Math.random() * 7)}.png`
+                }));
+                setAvailableUsers(avatarusers);
+            }
         }
         fetchUsers();
     }, [])
@@ -199,9 +215,7 @@ export default function page() {
                             {MessHistory.map((MESS, KEY) => {
                                 return (
                                     <div key={KEY}>
-                                        {MESS.connection ? <div className='text-zinc-800 dark:text-zinc-200 text-center mx-auto'>User <span className='capitalize'>{MESS.connection?.ref}</span> with id: <span className='italic text-zinc-500 dark:text-zinc-400 font-light'>{MESS.connection?.id}</span> from <span className='text-zinc-500 dark:text-zinc-400 font-light'>{formatPlatform(MESS.connection?.platform)}</span></div> :
-                                            <MessageBlock UserID={MESS.uid} Message={MESS.message} IsSent={MESS.IsSent} ></MessageBlock>
-                                        }
+                                        <MessageBlock UserID={MESS.uid} Message={MESS.message} IsSent={MESS.IsSent} ></MessageBlock>
                                     </div>
                                 )
                             })}
