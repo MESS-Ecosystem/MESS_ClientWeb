@@ -24,5 +24,6 @@ export const socket = io(URL, {
         callback({
             platformInfo: info,
         })
-    }
+    },
+    autoConnect: false,
 });

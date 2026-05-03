@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
 
 .linebreak::before {
     content: '';
@@ -6,8 +7,9 @@
     top: 50%;
     left: 0;
     transform: translateY(-100%);
-    background: #000;
+    background-color: inherit;
     width: 100px;
+    /* filter: invert(100%); */
     margin-inline: 30px;
     border-radius: calc(Infinity * 1px);
     height: 2px;
@@ -23,8 +25,9 @@
     top: 50%;
     right: 0;
     transform: translateY(-100%);
-    background: #000;
+    background-color: inherit;
     width: 25px;
+    /* filter: invert(100%); */
     margin-inline: 30px;
     border-radius: calc(Infinity * 1px);
     height: 2px;

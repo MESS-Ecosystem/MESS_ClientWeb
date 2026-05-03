@@ -128,7 +128,7 @@ export default function LoginPage() {
 
     return (
         <div
-            className="w-full overflow-x-hidden bg-white flex items-center justify-center px-4 sm:px-6"
+            className="w-full overflow-x-hidden bg-white dark:bg-zinc-900 dark:text-zinc-200 flex items-center justify-center px-4 sm:px-6"
             style={{ minHeight: "calc(100vh - 64px)" }}
         >
             <div className="relative w-full max-w-[500px] py-20">
@@ -137,7 +137,7 @@ export default function LoginPage() {
                     <h1 className={`${Grotesque.className} text-5xl sm:text-6xl font-bold mb-3`}>
                         Mess
                     </h1>
-                    <p className="text-lg text-gray-600 font-light">
+                    <p className="text-lg text-gray-600 dark:text-zinc-400 font-light">
                         Connect, broadcast, and chat
                     </p>
                 </div>
@@ -147,8 +147,8 @@ export default function LoginPage() {
                     <button
                         onClick={() => !loading && setIsLogin(true)}
                         className={`pb-4 text-lg font-medium transition-all duration-300 ${isLogin
-                            ? 'text-black border-b-2 border-black'
-                            : 'text-gray-400 border-b-0 border-black hover:text-gray-600'
+                            ? 'text-black dark:text-zinc-200 border-b-2 border-black dark:border-white'
+                            : 'text-gray-400 dark:text-zinc-400 border-b-0 border-black dark:border-white dark:hover:text-zinc-300 hover:text-gray-600'
                             }`}
                     >
                         Login
@@ -156,8 +156,8 @@ export default function LoginPage() {
                     <button
                         onClick={() => !loading && setIsLogin(false)}
                         className={`pb-4 text-lg font-medium transition-all duration-300 ${isLogin
-                            ? 'text-gray-400 border-b-0 border-black hover:text-gray-600'
-                            : 'text-black border-b-2 border-black'
+                            ? 'text-gray-400 dark:text-zinc-400 border-b-0 border-black dark:border-white dark:hover:text-zinc-300 hover:text-gray-600'
+                            : 'text-black dark:text-zinc-200 border-b-2 border-black dark:border-white'
                             }`}
                     >
                         Register
@@ -177,7 +177,7 @@ export default function LoginPage() {
                         <div className="space-y-6">
                             {/* Username Input */}
                             <div className="space-y-2">
-                                <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="username" className="block text-sm font-medium text-gray-700 dark:text-zinc-400">
                                     Username
                                 </label>
                                 <input
@@ -187,13 +187,13 @@ export default function LoginPage() {
                                     placeholder="Enter your username"
                                     value={loginData.username}
                                     onChange={handleLoginChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all duration-200 bg-white"
+                                    className="w-full px-4 py-3 border border-gray-300 dark:text-black rounded-lg focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all duration-200 bg-white"
                                 />
                             </div>
 
                             {/* Password Input */}
                             <div className="space-y-2">
-                                <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="password" className="block text-sm font-medium text-gray-700 dark:text-zinc-400">
                                     Password
                                 </label>
                                 <input
@@ -203,7 +203,7 @@ export default function LoginPage() {
                                     placeholder="Enter your password"
                                     value={loginData.password}
                                     onChange={handleLoginChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all duration-200 bg-white"
+                                    className="w-full px-4 py-3 border border-gray-300 dark:text-black rounded-lg focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all duration-200 bg-white"
                                 />
                             </div>
 
@@ -211,7 +211,7 @@ export default function LoginPage() {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full py-3 px-4 bg-black text-white font-medium rounded-lg hover:bg-gray-900 disabled:bg-gray-400 disabled:cursor-wait duration-200 mt-8 text-base"
+                                className="w-full py-3 px-4 bg-black text-white font-medium rounded-lg hover:bg-gray-900 dark:hover:bg-zinc-950 disabled:bg-gray-400 disabled:cursor-wait duration-200 mt-8 text-base"
                             >
                                 {loading ? 'Logging in...' : 'Login'}
                             </button>
@@ -225,7 +225,7 @@ export default function LoginPage() {
                         <div className="space-y-6">
                             {/* Email Input */}
                             <div className="space-y-2">
-                                <label htmlFor="email" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="email" className="block text-sm font-medium text-gray-700 dark:text-zinc-400">
                                     Email
                                 </label>
                                 <input
@@ -235,13 +235,13 @@ export default function LoginPage() {
                                     placeholder="Enter your email"
                                     value={registerData.email}
                                     onChange={handleRegisterChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all duration-200 bg-white"
+                                    className="w-full px-4 py-3 border border-gray-300 dark:text-black rounded-lg focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all duration-200 bg-white"
                                 />
                             </div>
 
                             {/* Username Input */}
                             <div className="space-y-2">
-                                <label htmlFor="reg-username" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="reg-username" className="block text-sm font-medium text-gray-700 dark:text-zinc-400">
                                     Username
                                 </label>
                                 <input
@@ -251,13 +251,13 @@ export default function LoginPage() {
                                     placeholder="Choose a username"
                                     value={registerData.username}
                                     onChange={handleRegisterChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all duration-200 bg-white"
+                                    className="w-full px-4 py-3 border border-gray-300 dark:text-black rounded-lg focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all duration-200 bg-white"
                                 />
                             </div>
 
                             {/* Display Name Input (Optional) */}
                             <div className="space-y-2">
-                                <label htmlFor="displayname" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="displayname" className="block text-sm font-medium text-gray-700 dark:text-zinc-400">
                                     Display Name <span className="text-gray-400 font-normal">(Optional)</span>
                                 </label>
                                 <input
@@ -267,13 +267,13 @@ export default function LoginPage() {
                                     placeholder="Your display name"
                                     value={registerData.displayname}
                                     onChange={handleRegisterChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all duration-200 bg-white"
+                                    className="w-full px-4 py-3 border border-gray-300 dark:text-black rounded-lg focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all duration-200 bg-white"
                                 />
                             </div>
 
                             {/* Password Input */}
                             <div className="space-y-2">
-                                <label htmlFor="reg-password" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="reg-password" className="block text-sm font-medium text-gray-700 dark:text-zinc-400">
                                     Password
                                 </label>
                                 <input
@@ -283,11 +283,11 @@ export default function LoginPage() {
                                     placeholder="Create a strong password"
                                     value={registerData.password}
                                     onChange={handleRegisterChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all duration-200 bg-white"
+                                    className="w-full px-4 py-3 border border-gray-300 dark:text-black rounded-lg focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all duration-200 bg-white"
                                 />
                             </div>
                             <div className="space-y-2">
-                                <label htmlFor="conf-password" className="block text-sm font-medium text-gray-700">
+                                <label htmlFor="conf-password" className="block text-sm font-medium text-gray-700 dark:text-zinc-400">
                                     Confirm Password
                                 </label>
                                 <input
@@ -297,7 +297,7 @@ export default function LoginPage() {
                                     placeholder="Confirm your password"
                                     value={registerData.confirmpassword}
                                     onChange={handleRegisterChange}
-                                    className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all duration-200 bg-white"
+                                    className="w-full px-4 py-3 border border-gray-300 dark:text-black rounded-lg focus:outline-none focus:border-black focus:ring-1 focus:ring-black transition-all duration-200 bg-white"
                                 />
                             </div>
 
@@ -305,7 +305,7 @@ export default function LoginPage() {
                             <button
                                 type="submit"
                                 disabled={loading}                                
-                                className={`w-full py-3 px-4 bg-black text-white font-medium rounded-lg hover:bg-gray-900 disabled:bg-gray-400 transition-colors duration-200 mt-8 text-base ${isRegistered && 'bg-emerald-300 !text-black'}`}
+                                className={`w-full py-3 px-4 bg-black text-white font-medium rounded-lg hover:bg-gray-900  dark:hover:bg-zinc-950 disabled:bg-gray-400 transition-colors duration-200 mt-8 text-base ${isRegistered && 'bg-emerald-300 !text-black'}`}
                             >
                                 {loading ? 'Creating account...' : isRegistered ? 'Account Created Successfully' : 'Register'}
                             </button>
@@ -315,14 +315,14 @@ export default function LoginPage() {
 
                 {/* Footer */}
                 <div className="mt-12 pt-8 border-t border-gray-200">
-                    <p className="text-center text-sm text-gray-500">
+                    <p className="text-center text-sm text-gray-500 dark:text-zinc-300">
                         {isLogin ? "Don't have an account? " : 'Already have an account? '}
                         <button
                             onClick={() => {
                                 !loading && setIsLogin(!isLogin);
                                 !loading && setError('');
                             }}
-                            className="text-black font-medium hover:underline transition-all"
+                            className="text-black dark:text-white font-medium hover:underline transition-all"
                         >
                             {isLogin ? 'Register' : 'Login'}
                         </button>

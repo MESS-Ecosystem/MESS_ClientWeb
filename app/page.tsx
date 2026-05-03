@@ -8,18 +8,18 @@ const Grotesque: any = Bricolage_Grotesque({
 
 export default function Home() {
   return (
-    <>
+    <div className='dark:bg-zinc-900 dark:text-white'>
       <LocomotiveScroll>
         <div className={'w-full h-[90vh] flex flex-col flex-wrap max-w-[88rem] mx-auto justify-center '}>
           <Link href={'/Broadcast'} className={Grotesque.className + ' text-6xl md:text-9xl duration-200 font-bold cursor-pointer wrap-anywhere ps-5'}>Broadcast</Link>
           <div className='max-w-[145px] flex flex-nowrap flex-col'>
-            <div className='linebreak relative mx-auto'>
-              OR
+            <div className='linebreak dark:bg-white bg-black relative mx-auto'>
+              <div className='bg-white dark:bg-zinc-900'>OR</div>
             </div>
           </div>
           <Link href={'/DM'} className={'text-4xl font-light ps-6.5 pt-2'}>DM</Link>
         </div>
       </LocomotiveScroll>
-    </>
+    </div>
   );
 }

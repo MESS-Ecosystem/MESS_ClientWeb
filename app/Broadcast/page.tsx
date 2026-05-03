@@ -181,6 +181,7 @@ export default function page() {
 
     // SOCKET LISTENERS
     useEffect(() => {
+        socket.connect(); // autoconnect is off
         socket.on('connect', onConnect);
         socket.on('disconnect', onDisconnect);
         socket.on('recieve-new-message', renderNewMessage);
@@ -190,6 +191,7 @@ export default function page() {
             socket.off('user-left');
             socket.off('user-connected');
             socket.off('recieve-new-message');
+            socket.disconnect();
         }
     }, [])
 
@@ -204,7 +206,7 @@ export default function page() {
                 {MessHistory.map((MESS, KEY) => {
                     return (
                         <div key={KEY}>
-                            {MESS.connection ? <div className='text-zinc-800 text-center mx-auto'>User <span className='capitalize'>{MESS.connection?.ref}</span> with id: <span className='italic text-zinc-500 font-light'>{MESS.connection?.id}</span> from <span className='text-zinc-500 font-light'>{formatPlatform(MESS.connection?.platform)}</span></div> :
+                            {MESS.connection ? <div className='text-zinc-800 dark:text-zinc-200 text-center mx-auto'>User <span className='capitalize'>{MESS.connection?.ref}</span> with id: <span className='italic text-zinc-500 dark:text-zinc-400 font-light'>{MESS.connection?.id}</span> from <span className='text-zinc-500 dark:text-zinc-400 font-light'>{formatPlatform(MESS.connection?.platform)}</span></div> :
                                 <MessageBlock UserID={MESS.uid} Message={MESS.message} IsSent={MESS.IsSent} ></MessageBlock> 
                             }
                         </div>
