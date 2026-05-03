@@ -2,7 +2,7 @@
 import { DM_Sans, Bricolage_Grotesque } from "next/font/google";
 import axios from "axios";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
-import { socket } from "../socket";
+import { socket } from "../DMSocket";
 import gsap from "gsap";
 import MessageBlock from "../Components/MessageBlock";
 const DMSans: any = DM_Sans({
@@ -15,6 +15,7 @@ const Grotesque: any = Bricolage_Grotesque({
 export default function page() {
     let tl: any;
     const inputRef = useRef<HTMLInputElement | null>(null);
+    const bottomRef = useRef<HTMLDivElement | null>(null);
     const [MessHistory, setMessHistory] = useState<Array<Message>>([])
     let [availableUsers, setAvailableUsers] = useState<any[]>([{
         id: 'ANBTHPQDGcmiC2qyAAAJ',
@@ -56,7 +57,10 @@ export default function page() {
     }
     // let [availableUsers, setAvailableUsers] = useState<Array<Object>>([])
 
-
+    function renderNewMessage(data: any) {
+        console.log('render data: ', data);
+        setMessHistory(prev => [...prev, data])
+    }
     // GSAP ANIMATIONS
     const focusInput = () => {
         if (tl) tl.kill();
@@ -108,7 +112,7 @@ export default function page() {
             }
         });
     }
-
+    // Sending Message
     const handleMess = (e: any) => {
         e.preventDefault();
         // console.log(input);
@@ -131,6 +135,12 @@ export default function page() {
                 }
             });
         }
+    }
+
+    const ChatWithID = (socket_user: selectedChatInterface) => {
+        // join room with the socketid
+        setSelectedChat(socket_user);
+        socket.emit('connectToRoom', { username: 'sam', room: 'lou' })
     }
 
     useEffect(() => {
@@ -157,6 +167,13 @@ export default function page() {
             }
         }
         fetchUsers();
+        socket.auth = { username: `ludvigforsell${Math.random()}` }
+        socket.connect();
+        socket.on('recieve-new-message', renderNewMessage)
+        return () => {
+            socket.off('recieve-new-message')
+            socket.disconnect()
+        }
     }, [])
 
 
@@ -169,11 +186,10 @@ export default function page() {
     //     setAvailableUsers(avatarUsers);
     // }, []);
 
-    const ChatWithID = (socket_user: selectedChatInterface) => {
-        // join room with the socketid
-        setSelectedChat(socket_user);
 
-    }
+    useEffect(() => {
+        bottomRef?.current?.scrollIntoView({ behavior: 'smooth' })
+    }, [MessHistory])
 
     return (
         <div className='w-screen flex flex-row flex-wrap' style={{ minHeight: "calc(100vh - 64px)" }}>
@@ -219,6 +235,7 @@ export default function page() {
                                     </div>
                                 )
                             })}
+                            <div className='opacity-0' ref={bottomRef}></div>
                         </div>
 
 

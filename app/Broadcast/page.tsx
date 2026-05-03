@@ -1,5 +1,5 @@
 'use client'
-import { socket } from '../socket'
+import { socket } from '../BroadcastSocket'
 import gsap from "gsap";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { Bricolage_Grotesque } from 'next/font/google'
@@ -15,6 +15,7 @@ export default function page() {
     // VARIABLES / STATES
     let tl: any; // gsap timeline
     const inputRef = useRef<HTMLInputElement | null>(null);
+    const bottomRef = useRef<HTMLDivElement | null>(null);
     const [isConnected, setIsConnected] = useState<Boolean>(false);
     const [MessHistory, setMessHistory] = useState<Array<Message>>([])
     const [input, setInput] = useState<userInput>({
@@ -161,7 +162,7 @@ export default function page() {
                 uid: data?.id,
                 displayName: '',
                 IsSent: false,
-                connection: {...data, ref: 'left', platform: formatPlatform(data?.platform)},
+                connection: { ...data, ref: 'left', platform: formatPlatform(data?.platform) },
             }]
         )
     }
@@ -173,11 +174,18 @@ export default function page() {
                 uid: data?.id,
                 displayName: '',
                 IsSent: false,
-                connection: {...data, ref: 'joined', platform: formatPlatform(data?.platform)},
+                connection: { ...data, ref: 'joined', platform: formatPlatform(data?.platform) },
             }]
         )
 
     }
+
+
+    useEffect(() => {
+
+        bottomRef?.current?.scrollIntoView({ behavior: 'smooth' });
+
+    }, [MessHistory])
 
     // SOCKET LISTENERS
     useEffect(() => {
@@ -198,20 +206,21 @@ export default function page() {
 
     return (
         <>
-            <div className='absolute top-0 right-0 z-60 text-xl capitalize pointer-events-none'>
+            <div className='fixed top-0 right-0 z-60 text-xl capitalize pointer-events-none'>
                 <div className={` ${Grotesque.className} ${isConnected ? 'bg-emerald-400' : 'bg-red-300'} ${isConnected ? 'text-emerald-800' : 'text-red-800'} px-3 ps-5 py-1 font-semibold m-3 mt-20 rounded-full flex flex-row flex-wrap items-center justify-evenly gap-1.5`}><div className={`${isConnected ? 'bg-emerald-700' : 'bg-red-700'} w-2 h-2 rounded-full`}>  </div>{isConnected ? 'Connected' : 'Disconnected'}</div>
             </div>
 
-            <div className='mx-auto max-w-2xl mt-24'>
+            <div className='mx-auto max-w-2xl my-24 pb-30'>
                 {MessHistory.map((MESS, KEY) => {
                     return (
                         <div key={KEY}>
                             {MESS.connection ? <div className='text-zinc-800 dark:text-zinc-200 text-center mx-auto'>User <span className='capitalize'>{MESS.connection?.ref}</span> with id: <span className='italic text-zinc-500 dark:text-zinc-400 font-light'>{MESS.connection?.id}</span> from <span className='text-zinc-500 dark:text-zinc-400 font-light'>{formatPlatform(MESS.connection?.platform)}</span></div> :
-                                <MessageBlock UserID={MESS.uid} Message={MESS.message} IsSent={MESS.IsSent} ></MessageBlock> 
+                                <MessageBlock UserID={MESS.uid} Message={MESS.message} IsSent={MESS.IsSent} ></MessageBlock>
                             }
                         </div>
                     )
                 })}
+                <div className='opacity-0' ref={bottomRef}></div>
             </div>
 
             <form onSubmit={handleMess} className={'fixed bottom-0 md:left-1/2 md:-translate-x-1/2 left-0 mx-auto w-full flex flex-row flex-wrap items-center justify-center mb-5'}>

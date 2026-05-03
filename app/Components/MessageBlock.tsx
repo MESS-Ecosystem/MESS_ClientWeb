@@ -14,7 +14,7 @@ export default function MessageBlock({ UserID = null, Message, IsSent = false }:
             }
             <div className={` ${IsSent ? 'bg-emerald-200 ' : 'bg-amber-100 '} text-zinc-900 dark:text-zinc-200 px-5 py-2 m-2 rounded-xl`}>
                 <p className={'text-zinc-700 dark:text-zinc-200'}>{UserID?.toString()}</p>
-                <p className={'text-3xl text-zinc-900'}>{Message.toString()}</p>
+                <p className={'text-3xl text-zinc-900'}>{Message?.toString()}</p>
             </div>
         </div>
     )
