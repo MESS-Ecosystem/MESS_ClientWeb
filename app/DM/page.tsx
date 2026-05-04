@@ -14,6 +14,8 @@ const Grotesque: any = Bricolage_Grotesque({
 
 export default function page() {
     let tl: any;
+    let [username, setUsername] = useState<string>('')
+    // let username: string = ''
     const inputRef = useRef<HTMLInputElement | null>(null);
     const bottomRef = useRef<HTMLDivElement | null>(null);
     const [MessHistory, setMessHistory] = useState<Array<Message>>([])
@@ -112,6 +114,12 @@ export default function page() {
             }
         });
     }
+
+    const handleUsername = (e: any) => {
+        e.preventDefault();
+        setUsername(e.target.username.value);
+    }
+
     // Sending Message
     const handleMess = (e: any) => {
         e.preventDefault();
@@ -140,7 +148,7 @@ export default function page() {
     const ChatWithID = (socket_user: selectedChatInterface) => {
         // join room with the socketid
         setSelectedChat(socket_user);
-        socket.emit('connectToRoom', { username: 'sam', room: 'lou' })
+        socket.emit('connectToRoom', { username: username, room: socket_user.username })
     }
 
     useEffect(() => {
@@ -167,14 +175,34 @@ export default function page() {
             }
         }
         fetchUsers();
-        socket.auth = { username: `ludvigforsell${Math.random()}` }
-        socket.connect();
-        socket.on('recieve-new-message', renderNewMessage)
-        return () => {
-            socket.off('recieve-new-message')
-            socket.disconnect()
+    }, [username])
+
+
+    useEffect(() => {
+        if (username !== '') {
+            socket.auth = { username: username }
+            socket.connect();
+            socket.emit('connectToRoom', { username: username, room: username })
+            console.log('socket to /DM connected !!')
+            socket.on('recieve-new-message', renderNewMessage)
+            socket.on('userconnected', (data) => {
+                console.log(data)
+                setAvailableUsers(prev => [...prev, {
+                    username: data.username,
+                    id: data?.id,
+                    avatar: `placeholder${Math.floor(Math.random() * 7)}.png`,
+                }])
+            })
         }
-    }, [])
+        return () => {
+            if (username !== '') {
+                socket.off('userconnected')
+                socket.off('recieve-new-message')
+                socket.disconnect();
+            }
+        }
+    }, [username])
+
 
 
     // useEffect(() => {
@@ -184,7 +212,7 @@ export default function page() {
     //     }));
 
     //     setAvailableUsers(avatarUsers);
-    // }, []);
+    // }, [availableUsers]);
 
 
     useEffect(() => {
@@ -193,6 +221,26 @@ export default function page() {
 
     return (
         <div className='w-screen flex flex-row flex-wrap' style={{ minHeight: "calc(100vh - 64px)" }}>
+
+
+            {/* username (for anonymous users) */}
+            {username === '' &&
+                <div className='w-screen h-screen absolute top-1/2 left-1/2 -translate-1/2 flex flex-wrap justify-center items-center bg-white/60 backdrop-blur-sm'>
+                    <form
+                        className={` ${Grotesque.className} flex flex-col flex-wrap items-center gap-2.5 bg-white/80 backdrop-blur-xs p-5 rounded-3xl`}
+                        onSubmit={handleUsername}
+                    >
+                        <div>
+                            <label htmlFor="username" className='text-3xl font-semibold'>Username: </label>
+                            <input type="text" id="username" name="username" className='bg-zinc-100 border border-zinc-300 rounded-2xl py-3 px-6 text-xl' />
+                        </div>
+                        <input type="submit" value="Chat !" className='bg-zinc-500 text-white text-3xl p-2 w-full cursor-pointer px-4 rounded-2xl mt-2.5' />
+                    </form>
+                </div>
+            }
+
+
+
             <div
                 className='dark:bg-white/20 bg-black/10 text-black dark:text-white duration-150 rounded-3xl max-w-1/5 w-full m-5 ms-10 p-3'
                 style={{ minHeight: "calc(90vh - 64px)" }}
