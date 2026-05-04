@@ -150,7 +150,7 @@ export default function page() {
         }
     }
 
-    const ChatWithID = (socket_user: selectedChatInterface) => {
+    const ChatWithID = async (socket_user: selectedChatInterface) => {
         // join room with the socketid
         setSelectedChat(socket_user);
 
@@ -158,6 +158,8 @@ export default function page() {
         let roomID = username < socket_user.username ? `${username}-to-${socket_user.username}` : `${socket_user.username}-to-${username}`
         socket.emit('connectToRoom', { username: username, room: roomID })
         setMessHistory([])
+
+        socket.emit('get-all-messages');
     }
     useEffect(() => {
         const fetchUsers = async () => {
@@ -194,6 +196,28 @@ export default function page() {
             console.log('socket to /DM connected !!')
             socket.on('recieve-new-message', renderNewMessage)
             socket.on('currentroom', currentRoom)
+            socket.on('get-all-messages', (messages) => {
+                console.log('older messages: ', messages)
+
+                let messageArray = messages.map((singlemessage: any) => {
+                    return {
+                        message: singlemessage.content,
+                        uid: '',
+                        displayName: '',
+                        IsSent: username === singlemessage.senderId,
+                        connection: null
+                    }
+                })
+                setMessHistory(messageArray);
+
+
+                // message: string | number | readonly string[],
+                // uid: string | null,
+                // displayName: string,
+                // IsSent: boolean,
+                // connection: Connection | null
+
+            })
             socket.on('userconnected', (data) => {
                 console.log(data)
                 setAvailableUsers(prev => [...prev, {
@@ -206,6 +230,7 @@ export default function page() {
         return () => {
             if (username !== '') {
                 socket.off('userconnected')
+                socket.off('get-all-messages')
                 socket.off('currentroom')
                 socket.off('recieve-new-message')
                 socket.disconnect();
