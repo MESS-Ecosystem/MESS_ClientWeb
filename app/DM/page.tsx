@@ -19,6 +19,7 @@ export default function page() {
     const inputRef = useRef<HTMLInputElement | null>(null);
     const bottomRef = useRef<HTMLDivElement | null>(null);
     const [MessHistory, setMessHistory] = useState<Array<Message>>([])
+    const [currentRoomName, setCurrentRoomName] = useState<String>('null')
     let [availableUsers, setAvailableUsers] = useState<any[]>([{
         id: 'ANBTHPQDGcmiC2qyAAAJ',
         username: 'Test User',
@@ -62,6 +63,10 @@ export default function page() {
     function renderNewMessage(data: any) {
         console.log('render data: ', data);
         setMessHistory(prev => [...prev, data])
+    }
+    function currentRoom(room: any) {
+        console.log('current room: ', room);
+        setCurrentRoomName(room.room);
     }
     // GSAP ANIMATIONS
     const focusInput = () => {
@@ -185,6 +190,7 @@ export default function page() {
             socket.emit('connectToRoom', { username: username, room: username })
             console.log('socket to /DM connected !!')
             socket.on('recieve-new-message', renderNewMessage)
+            socket.on('currentroom', currentRoom)
             socket.on('userconnected', (data) => {
                 console.log(data)
                 setAvailableUsers(prev => [...prev, {
@@ -197,6 +203,7 @@ export default function page() {
         return () => {
             if (username !== '') {
                 socket.off('userconnected')
+                socket.off('currentroom')
                 socket.off('recieve-new-message')
                 socket.disconnect();
             }
@@ -225,7 +232,7 @@ export default function page() {
 
             {/* username (for anonymous users) */}
             {username === '' &&
-                <div className='w-screen h-screen absolute top-1/2 left-1/2 -translate-1/2 flex flex-wrap justify-center items-center bg-white/60 backdrop-blur-sm'>
+                <div className='w-screen h-screen absolute z-10 top-1/2 left-1/2 -translate-1/2 flex flex-wrap justify-center items-center bg-white/60 backdrop-blur-sm'>
                     <form
                         className={` ${Grotesque.className} flex flex-col flex-wrap items-center gap-2.5 bg-white/80 backdrop-blur-xs p-5 rounded-3xl`}
                         onSubmit={handleUsername}
@@ -242,69 +249,82 @@ export default function page() {
 
 
             <div
-                className='dark:bg-white/20 bg-black/10 text-black dark:text-white duration-150 rounded-3xl max-w-1/5 w-full m-5 ms-10 p-3'
+                className=' text-black dark:text-white duration-150 basis-1/5 w-full relative p-5 ps-10'
                 style={{ minHeight: "calc(90vh - 64px)" }}
             >
-                <h3 className={` ${DMSans.className} text-4xl font-light tracking-tight ps-5 pt-3`}>Messages</h3>
+                <div className='dark:bg-white/20 bg-black/10 w-full h-full p-3 rounded-3xl'>
+                    <h3 className={` ${DMSans.className} text-4xl font-light tracking-tight ps-5 pt-3`}>Messages</h3>
+                    <div className='flex flex-col flex-wrap mt-8 gap-2'>
+                        {availableUsers.map((user, id) => {
+                            return (
+                                <div key={user.id} onClick={() => ChatWithID(user)} className='flex flex-row flex-wrap cursor-pointer items-center gap-5 w-full text-xl font-semibold bg-white px-5 py-3 rounded-2xl'>
+                                    <img src={`/placeholder_profiles/${user.avatar}`} className='max-w-12 bg-transparent' alt="" />
+                                    {user.username}
+                                </div>
+                            )
+                        })}
+                    </div>
 
-                <div className='flex flex-col flex-wrap mt-8 gap-2'>
-                    {availableUsers.map((user, id) => {
-                        return (
-                            <div key={user.id} onClick={() => ChatWithID(user)} className='flex flex-row flex-wrap cursor-pointer items-center gap-5 w-full text-xl font-semibold bg-white px-5 py-3 rounded-2xl'>
-                                <img src={`/placeholder_profiles/${user.avatar}`} className='max-w-12 bg-transparent' alt="" />
-                                {user.username}
-                            </div>
-                        )
-                    })}
+                    <div className={` ${Grotesque.className} font-semibold absolute bottom-0 left-0 w-full py-3 -translate-y-1/4 text-center bg-white/50 text-3xl uppercase`}>
+                        {username}
+                    </div>
                 </div>
-
 
             </div>
             <div
-                className={`dark:bg-white/20 bg-black/10 text-black dark:text-white duration-150 basis-3/5 mx-auto rounded-3xl my-5 p-3 flex ${selectedChat === null && 'justify-center items-center'} `}
-
+                className={` text-black dark:text-white duration-150 xl:basis-4/5 lg:basis-3/5 mx-auto rounded-3xl my-5 px-1 pe-10`}
             >
-                {selectedChat === null ?
-                    <h4 className={`text-5xl font-semibold opacity-0 duration-200 ${selectedChat === null && 'opacity-100'} ${Grotesque.className} `}>Select a friend to Chat with </h4>
-                    :
-                    <div className='w-full h-full relative'>
-                        <div className='chat-header w-full h-16 flex flex-row flex-wrap items-center gap-2 px-5 rounded-2xl text-2xl bg-white '>
+                <div className={`dark:bg-white/20 bg-black/10 w-full h-full p-3 rounded-3xl flex ${selectedChat === null && 'justify-center items-center'} `}>
 
-                            <img src={`/placeholder_profiles/${selectedChat.avatar}`} className='max-w-12 bg-transparent object-contain' alt="" />
-                            <p className='ps-5 font-semibold'>{selectedChat.username}</p>
-                        </div>
+                    {selectedChat === null ?
+                        <h4 className={`text-5xl font-semibold opacity-0 duration-200 ${selectedChat === null && 'opacity-100'} ${Grotesque.className} `}>Select a friend to Chat with </h4>
+                        :
+                        <div className='w-full h-full relative'>
+                            <div className='chat-header w-full h-16 flex flex-row flex-wrap items-center justify-between gap-2 px-5 rounded-2xl text-2xl bg-white '>
 
+                                <div className='flex flex-row flex-wrap items-center'>
+                                    <img src={`/placeholder_profiles/${selectedChat.avatar}`} className='max-w-12 bg-transparent object-contain' alt="" />
+                                    <p className='ps-5 font-semibold'>{selectedChat.username}</p>
+                                </div>
+                                <div className='text-xl font-semibold flex flex-wrap items-center'>
+                                    {currentRoomName}
+                                </div>
 
-                        <div className='mx-auto max-w-2xl mt-24'>
-                            {MessHistory.map((MESS, KEY) => {
-                                return (
-                                    <div key={KEY}>
-                                        <MessageBlock UserID={MESS.uid} Message={MESS.message} IsSent={MESS.IsSent} ></MessageBlock>
-                                    </div>
-                                )
-                            })}
-                            <div className='opacity-0' ref={bottomRef}></div>
-                        </div>
-
-
-                        <form onSubmit={handleMess} className={'absolute bottom-0 md:left-1/2 md:-translate-x-1/2 left-0 mx-auto w-full flex flex-row flex-wrap items-center justify-center mb-5'}>
-                            <input
-                                ref={inputRef}
-                                onFocus={focusInput}
-                                onBlur={blurInput}
-                                type="text"
-                                className="bg-white rounded-full md:max-w-auto max-w-screen text-xl px-5 py-3"
-                                value={input.message}
-                                onChange={handleChange}
-                            />
-                            <div className="text-black max-w-12 m-0 ms-2 my-auto flex flex-wrap justify-center items-center p-3 bg-zinc-100 rounded-full sendicon" >
-                                <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                    <path d="M7 17L17 7M17 7H7M17 7V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                                </svg>
                             </div>
-                        </form>
-                    </div>
-                }
+
+
+                            <div className='mx-auto max-w-2xl mt-24'>
+                                {MessHistory.map((MESS, KEY) => {
+                                    return (
+                                        <div key={KEY}>
+                                            <MessageBlock UserID={MESS.uid} Message={MESS.message} IsSent={MESS.IsSent} ></MessageBlock>
+                                        </div>
+                                    )
+                                })}
+                                <div className='opacity-0' ref={bottomRef}></div>
+                            </div>
+
+
+                            <form onSubmit={handleMess} className={'absolute bottom-0 md:left-1/2 md:-translate-x-1/2 left-0 mx-auto w-full flex flex-row flex-wrap items-center justify-center mb-5'}>
+                                <input
+                                    ref={inputRef}
+                                    onFocus={focusInput}
+                                    onBlur={blurInput}
+                                    type="text"
+                                    className="bg-white rounded-full md:max-w-auto max-w-screen text-xl px-5 py-3"
+                                    value={input.message}
+                                    onChange={handleChange}
+                                />
+                                <div className="text-black max-w-12 m-0 ms-2 my-auto flex flex-wrap justify-center items-center p-3 bg-zinc-100 rounded-full sendicon" >
+                                    <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                        <path d="M7 17L17 7M17 7H7M17 7V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                                    </svg>
+                                </div>
+                            </form>
+                        </div>
+                    }
+                </div>
+
             </div>
         </div>
     )
