@@ -153,9 +153,12 @@ export default function page() {
     const ChatWithID = (socket_user: selectedChatInterface) => {
         // join room with the socketid
         setSelectedChat(socket_user);
-        socket.emit('connectToRoom', { username: username, room: socket_user.username })
-    }
 
+        // let sorted = username < socket_user.username 
+        let roomID = username < socket_user.username ? `${username}-to-${socket_user.username}` : `${socket_user.username}-to-${username}`
+        socket.emit('connectToRoom', { username: username, room: roomID })
+        setMessHistory([])
+    }
     useEffect(() => {
         const fetchUsers = async () => {
             // using direct get requests, for testing
