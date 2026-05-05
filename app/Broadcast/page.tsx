@@ -198,10 +198,22 @@ export default function page() {
 
     }, [MessHistory])
 
+    function getPlatformInfo() {
+        const userAgent = window.navigator.userAgent;
+        const platform = window.navigator.platform;
+        console.log(platform)
+        if (/Mac/i.test(platform)) return 'Mac OS';
+        if (/iPhone|iPad|iPod/i.test(platform)) return 'iOS';
+        if (/Win/i.test(platform)) return 'Windows';
+        if (/Android/i.test(userAgent)) return 'Android';
+        if (/Linux/i.test(platform)) return 'Linux';
+        return 'Unknown';
+    }
     // SOCKET LISTENERS
     useEffect(() => {
         if (username !== '') {
-            socket.auth = { ...socket.auth, username: username, displayName: username }
+            let info = getPlatformInfo();
+            socket.auth = { platformInfo: info, username: username, displayName: username }
             socket.connect(); // autoconnect is off
             socket.on('connect', onConnect);
             socket.on('disconnect', onDisconnect);
