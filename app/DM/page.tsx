@@ -31,14 +31,14 @@ export default function page() {
         message: '',
         uid: null, // null = anonymous
         displayName: '',
-        IsSent: false,
+        isSent: false,
     });
 
     interface userInput {
         message: string | undefined | number | readonly string[],
         uid: null | string,
         displayName: string,
-        IsSent: boolean,
+        isSent: boolean,
     }
     interface Connection {
         id?: string,
@@ -49,7 +49,7 @@ export default function page() {
         message: string | number | readonly string[],
         uid: string | null,
         displayName: string,
-        IsSent: boolean,
+        isSent: boolean,
         connection: Connection | null
     }
     interface selectedChatInterface {
@@ -136,7 +136,7 @@ export default function page() {
                 message: input.message.toString(), // raw sanitized            
                 displayName: '', // just for now
                 uid: '', // will be provided by socketid, will be added later, 
-                IsSent: true,
+                isSent: true,
                 connection: null, // just for a fallback, not used on server
             }
             setMessHistory(prev => [...prev, data])
@@ -217,7 +217,7 @@ export default function page() {
                         message: singlemessage.content,
                         uid: '',
                         displayName: '',
-                        IsSent: username === singlemessage.senderId,
+                        isSent: username === singlemessage.senderId,
                         connection: null
                     }
                 })
@@ -227,7 +227,7 @@ export default function page() {
                 // message: string | number | readonly string[],
                 // uid: string | null,
                 // displayName: string,
-                // IsSent: boolean,
+                // isSent: boolean,
                 // connection: Connection | null
 
             })
@@ -338,7 +338,7 @@ export default function page() {
                                 {MessHistory.map((MESS, KEY) => {
                                     return (
                                         <div key={KEY}>
-                                            <MessageBlock UserID={MESS.uid} Message={MESS.message} IsSent={MESS.IsSent} ></MessageBlock>
+                                            <MessageBlock UserID={MESS.uid} Message={MESS.message} isSent={MESS.isSent} ></MessageBlock>
                                         </div>
                                     )
                                 })}

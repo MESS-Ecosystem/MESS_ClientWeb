@@ -23,7 +23,7 @@ export default function page() {
         message: '',
         uid: null, // null = anonymous
         displayName: '',
-        IsSent: false,
+        isSent: false,
     });
 
 
@@ -35,7 +35,7 @@ export default function page() {
         message: string | undefined | number | readonly string[],
         uid: null | string,
         displayName: string,
-        IsSent: boolean,
+        isSent: boolean,
     }
 
     interface Connection {
@@ -48,7 +48,7 @@ export default function page() {
         message: string | number | readonly string[],
         uid: string | null,
         displayName: string,
-        IsSent: boolean,
+        isSent: boolean,
         connection: Connection | null
     }
 
@@ -117,7 +117,7 @@ export default function page() {
                 message: input.message.toString(), // raw sanitized            
                 displayName: '', // just for now
                 uid: '', // will be provided by socketid, will be added later, 
-                IsSent: true,
+                isSent: true,
                 connection: null, // just for a fallback, not used on server
             }
             setMessHistory(prev => [...prev, data])
@@ -162,7 +162,7 @@ export default function page() {
                 message: '',
                 uid: data?.id,
                 displayName: '',
-                IsSent: false,
+                isSent: false,
                 connection: { ...data, ref: 'left', platform: formatPlatform(data?.platform) },
             }]
         )
@@ -174,7 +174,7 @@ export default function page() {
                 message: '',
                 uid: data?.id,
                 displayName: data?.displayName,
-                IsSent: false,
+                isSent: false,
                 connection: { ...data, ref: 'joined', platform: formatPlatform(data?.platform) },
             }]
         )
@@ -258,7 +258,7 @@ export default function page() {
                             return (
                                 <div key={KEY}>
                                     {MESS.connection ? <div className='text-zinc-800 dark:text-zinc-200 text-center mx-auto'>{MESS.displayName} <span className='capitalize'>{MESS.connection?.ref}</span> with id: <span className='italic text-zinc-500 dark:text-zinc-400 font-light'>{MESS.connection?.id}</span> from <span className='text-zinc-500 dark:text-zinc-400 font-light'>{formatPlatform(MESS.connection?.platform)}</span></div> :
-                                        <MessageBlock UserID={MESS.uid} displayName={MESS.displayName} Message={MESS.message} IsSent={MESS.IsSent} ></MessageBlock>
+                                        <MessageBlock UserID={MESS.uid} displayName={MESS.displayName} Message={MESS.message} isSent={MESS.isSent} ></MessageBlock>
                                     }
                                 </div>
                             )

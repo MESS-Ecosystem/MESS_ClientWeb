@@ -3,17 +3,17 @@
 interface params {
     UserID: String | null,
     Message: string | number | readonly string[],
-    IsSent: Boolean | null,
+    isSent: Boolean | null,
     displayName: String | string
 }
-export default function MessageBlock({ UserID = null, Message, IsSent = false, displayName = 'Anonymous' }: params) {
+export default function MessageBlock({ UserID = null, Message, isSent = false, displayName = 'Anonymous' }: params) {
 
     return (
-        <div className={` ${IsSent ? 'ms-auto enteringanimationonsent' : 'me-auto enteringanimation'} min-w-16 w-fit max-w-1/2 relative mt-6 `}>
-            {!IsSent &&
+        <div className={` ${isSent ? 'ms-auto enteringanimationonsent' : 'me-auto enteringanimation'} min-w-16 w-fit max-w-1/2 relative mt-6 `}>
+            {!isSent &&
                 <div className={'absolute top-0 left-0 ps-2.5 -translate-y-full text-sm text-zinc-600 dark:text-zinc-200'}>{displayName}</div>
             }
-            <div className={` ${IsSent ? 'bg-emerald-200 ' : 'bg-amber-100 '} text-zinc-900 dark:text-zinc-200 px-5 py-2 m-2 rounded-xl`}>
+            <div className={` ${isSent ? 'bg-emerald-200 ' : 'bg-amber-100 '} text-zinc-900 dark:text-zinc-200 px-5 py-2 m-2 rounded-xl`}>
                 <p className={'text-zinc-700 dark:text-zinc-200'}>{UserID?.toString()}</p>
                 <p className={'text-xl text-zinc-900'}>{Message?.toString()}</p>
             </div>
