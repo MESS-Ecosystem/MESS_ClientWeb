@@ -17,7 +17,7 @@ export default function page() {
     const inputRef = useRef<HTMLInputElement | null>(null);
     const bottomRef = useRef<HTMLDivElement | null>(null);
     let [username, setUsername] = useState<string>('')
-    const [isConnected, setIsConnected] = useState<Boolean>(false);
+    const [isConnected, setIsConnected] = useState<Boolean | null>(false); 
     const [MessHistory, setMessHistory] = useState<Array<Message>>([])
     const [input, setInput] = useState<userInput>({
         message: '',
@@ -131,6 +131,14 @@ export default function page() {
         }
     }
 
+    function retryConnection() {
+        console.log('reconnecting...')
+        setIsConnected(null);
+        let info = getPlatformInfo();
+        socket.auth = { platformInfo: info, username: username, displayName: username }
+        socket.connect();
+        // rest of state handling is managed automatically by socket listeners
+    }
 
     // SOCKET HANDLERS
     function onConnect() {
@@ -211,15 +219,32 @@ export default function page() {
     }
     // SOCKET LISTENERS
     useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent) => {
+            if (event.key === 'R' && event.shiftKey) {
+                if(event.target == inputRef.current) return; // preventing accidental (ui update) refresh while typing
+                if (isConnected !== false) {
+                    setIsConnected(null)
+                    setTimeout(() => {
+                        setIsConnected(true)
+                        console.log('FOOOLED USER')
+                    }, 250)
+                }
+                else {
+                    retryConnection()
+                }
+            }
+        };
         if (username !== '') {
             let info = getPlatformInfo();
             socket.auth = { platformInfo: info, username: username, displayName: username }
             socket.connect(); // autoconnect is off
+            setIsConnected(null) // setting connecting state before sending connection request to server
             socket.on('connect', onConnect);
             socket.on('disconnect', onDisconnect);
             socket.on('recieve-new-message', renderNewMessage);
             socket.on('user-left', userLeft);
             socket.on('user-connected', userJoined);
+            document.addEventListener('keydown', handleKeyDown);
         }
         return () => {
             if (username !== '') {
@@ -227,6 +252,7 @@ export default function page() {
                 socket.off('user-connected');
                 socket.off('recieve-new-message');
                 socket.disconnect();
+                document.removeEventListener('keydown', handleKeyDown);
             }
         }
     }, [username])
@@ -234,8 +260,14 @@ export default function page() {
 
     return (
         <>
-            <div className='fixed top-0 right-0 z-60 text-xl capitalize pointer-events-none'>
-                <div className={` ${Grotesque.className} ${isConnected ? 'bg-emerald-400' : 'bg-red-300'} ${isConnected ? 'text-emerald-800' : 'text-red-800'} px-3 ps-5 py-1 font-semibold m-3 mt-20 rounded-full flex flex-row flex-wrap items-center justify-evenly gap-1.5`}><div className={`${isConnected ? 'bg-emerald-700' : 'bg-red-700'} w-2 h-2 rounded-full`}>  </div>{isConnected ? 'Connected' : 'Disconnected'}</div>
+            <div
+                onClick={retryConnection}
+                className='fixed top-0 right-0 z-60 text-xl capitalize pointer-events-none'>
+                <div className={` ${Grotesque.className} ${isConnected ? 'bg-emerald-400' : isConnected == null ? 'bg-amber-300 cursor-pointer' : 'bg-red-300 cursor-pointer'} ${isConnected ? 'text-emerald-800' : isConnected == null ? 'text-amber-800' : 'text-red-800'} px-3 ps-5 py-1 font-semibold m-3 mt-20 rounded-full flex flex-row flex-wrap items-center justify-evenly gap-1.5`}>
+                    <div className={`${isConnected ? 'bg-emerald-700' : isConnected ? 'bg-amber-700' : 'bg-red-700'} w-2 h-2 rounded-full`}></div>
+                    {isConnected ? 'Connected' : isConnected == null ? 'Connecting...' : 'Disconnected'}
+                </div>
+
             </div>
             {/* username (for anonymous users) */}
             {username === '' ?
