@@ -10,15 +10,18 @@ const Grotesque = Bricolage_Grotesque({
 })
 
 
-export default function page() {
+export default function Page() {
 
     // VARIABLES / STATES
-    let tl: any; // gsap timeline
+    const tl = useRef<any>(null); // gsap timeline
     const inputRef = useRef<HTMLInputElement | null>(null);
     const bottomRef = useRef<HTMLDivElement | null>(null);
-    let [username, setUsername] = useState<string>('')
-    const [isConnected, setIsConnected] = useState<Boolean | null>(false); 
+    const [username, setUsername] = useState<string>('')
+    const [isConnected, setIsConnected] = useState<boolean | null>(false);
     const [MessHistory, setMessHistory] = useState<Array<Message>>([])
+    const [typingUsers, setTypingUsers] = useState<Array<TypingUser>>([])
+    const typingIntervalRef = useRef<number | null>(null)
+    const typingTimeoutsRef = useRef<Record<string, number>>({})
     const [input, setInput] = useState<userInput>({
         message: '',
         uid: null, // null = anonymous
@@ -52,14 +55,19 @@ export default function page() {
         connection: Connection | null
     }
 
+    interface TypingUser {
+        id: string,
+        displayName: string,
+    }
+
 
 
 
     // GSAP ANIMATIONS
     const focusInput = () => {
-        if (tl) tl.kill();
-        tl = gsap.timeline();
-        tl.to(inputRef.current, {
+        if (tl.current) tl.current.kill();
+        tl.current = gsap.timeline();
+        tl.current.to(inputRef.current, {
             // fontSize: 24,
             scale: 1.25,
             x: '-15',
@@ -67,7 +75,7 @@ export default function page() {
             duration: 0.5,
             autoRound: false,
         }, 'sync')
-        tl.to('.sendicon', {
+        tl.current.to('.sendicon', {
             // fontSize: 20,
             scale: 1.2,
             x: '-80%',
@@ -77,9 +85,9 @@ export default function page() {
         }, 'sync')
     }
     const blurInput = () => {
-        if (tl) tl.kill();
-        tl = gsap.timeline();
-        tl.to(inputRef.current, {
+        if (tl.current) tl.current.kill();
+        tl.current = gsap.timeline();
+        tl.current.to(inputRef.current, {
             // fontSize: 20,
             scale: 1,
             x: 0,
@@ -87,7 +95,7 @@ export default function page() {
             duration: 0.5,
             autoRound: false,
         }, 'sync')
-        tl.to('.sendicon', {
+        tl.current.to('.sendicon', {
             // fontSize: 20,
             scale: 1,
             x: 0,
@@ -99,12 +107,48 @@ export default function page() {
 
     // EVENT HANDLERS
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+        const nextValue = e.target.value
         setInput((prev) => {
             return {
                 ...prev,
-                message: e.target.value,
+                message: nextValue,
             }
         });
+        startTypingTicker(nextValue)
+    }
+
+    const stopTypingTicker = () => {
+        if (typingIntervalRef.current !== null) {
+            window.clearInterval(typingIntervalRef.current)
+            typingIntervalRef.current = null
+        }
+    }
+
+    const sendAmTyping = () => {
+        if (!socket || !socket.connected) return;
+        if (!username) return;
+        socket.emit('am-typing', {
+            id: socket.id,
+            displayName: username,
+        })
+    }
+
+    const startTypingTicker = (currentValue: string) => {
+        const trimmed = String(currentValue || '').trim()
+        if (!trimmed) {
+            stopTypingTicker()
+            return
+        }
+        if (typingIntervalRef.current !== null) return
+        sendAmTyping()
+        typingIntervalRef.current = window.setInterval(() => {
+            const current = inputRef.current?.value ?? ''
+            if (String(current).trim()) {
+                sendAmTyping()
+            } else {
+                stopTypingTicker()
+            }
+        }, 500)
     }
 
     const handleMess = (e: any) => {
@@ -113,6 +157,7 @@ export default function page() {
         if (input.message) {
 
             socket.emit('send-message', input);
+            stopTypingTicker()
             let data: Message = {
                 message: input.message.toString(), // raw sanitized            
                 displayName: '', // just for now
@@ -121,7 +166,6 @@ export default function page() {
                 connection: null, // just for a fallback, not used on server
             }
             setMessHistory(prev => [...prev, data])
-            // console.log(MessHistory, data)
             setInput((prev) => {
                 return {
                     ...prev,
@@ -134,7 +178,8 @@ export default function page() {
     function retryConnection() {
         console.log('reconnecting...')
         setIsConnected(null);
-        let info = getPlatformInfo();
+        const info = getPlatformInfo();
+        // eslint-disable-next-line react-hooks/immutability
         socket.auth = { platformInfo: info, username: username, displayName: username }
         socket.connect();
         // rest of state handling is managed automatically by socket listeners
@@ -149,6 +194,12 @@ export default function page() {
     }
     function renderNewMessage(data: any) {
         console.log('render data: ', data);
+        setTypingUsers(prev => prev.filter((user) => user.id !== String(data?.uid || data?.id || '')))
+        const nextId = String(data?.uid || data?.id || '')
+        if (nextId && typingTimeoutsRef.current[nextId]) {
+            window.clearTimeout(typingTimeoutsRef.current[nextId])
+            delete typingTimeoutsRef.current[nextId]
+        }
         setMessHistory(prev => [...prev, data])
     }
 
@@ -188,6 +239,23 @@ export default function page() {
         )
 
     }
+
+    const handleIsTyping = (payload: any) => {
+        if (!payload?.id) return
+        const id = String(payload.id)
+        const displayName = payload.displayName || 'Anonymous'
+        setTypingUsers(prev => {
+            if (prev.some(user => user.id === id)) return prev
+            return [...prev, { id, displayName }]
+        })
+        if (typingTimeoutsRef.current[id]) {
+            window.clearTimeout(typingTimeoutsRef.current[id])
+        }
+        typingTimeoutsRef.current[id] = window.setTimeout(() => {
+            setTypingUsers(prev => prev.filter(user => user.id !== id))
+            delete typingTimeoutsRef.current[id]
+        }, 2000)
+    }
     const handleUsername = (e: any) => {
         e.preventDefault();
         setUsername(e.target.username.value);
@@ -221,7 +289,7 @@ export default function page() {
     useEffect(() => {
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'R' && event.shiftKey) {
-                if(event.target == inputRef.current) return; // preventing accidental (ui update) refresh while typing
+                if (event.target == inputRef.current) return; // preventing accidental (ui update) refresh while typing
                 if (isConnected !== false) {
                     setIsConnected(null)
                     setTimeout(() => {
@@ -234,8 +302,10 @@ export default function page() {
                 }
             }
         };
+
         if (username !== '') {
-            let info = getPlatformInfo();
+            const info = getPlatformInfo();
+            // eslint-disable-next-line react-hooks/immutability
             socket.auth = { platformInfo: info, username: username, displayName: username }
             socket.connect(); // autoconnect is off
             setIsConnected(null) // setting connecting state before sending connection request to server
@@ -244,6 +314,7 @@ export default function page() {
             socket.on('recieve-new-message', renderNewMessage);
             socket.on('user-left', userLeft);
             socket.on('user-connected', userJoined);
+            socket.on('is-typing', handleIsTyping);
             document.addEventListener('keydown', handleKeyDown);
         }
         return () => {
@@ -251,12 +322,15 @@ export default function page() {
                 socket.off('user-left');
                 socket.off('user-connected');
                 socket.off('recieve-new-message');
+                socket.off('is-typing', handleIsTyping);
                 socket.disconnect();
                 document.removeEventListener('keydown', handleKeyDown);
+                stopTypingTicker()
+                Object.values(typingTimeoutsRef.current).forEach((timeoutId) => window.clearTimeout(timeoutId))
+                typingTimeoutsRef.current = {}
             }
         }
     }, [username])
-
 
     return (
         <>
@@ -286,6 +360,7 @@ export default function page() {
                 :
                 <>
                     <div className='mx-auto max-w-2xl my-24 pb-30'>
+
                         {MessHistory.map((MESS, KEY) => {
                             return (
                                 <div key={KEY}>
@@ -295,6 +370,11 @@ export default function page() {
                                 </div>
                             )
                         })}
+                        {typingUsers.length > 0 &&
+                            <div className='mb-4 max-w-fit rounded-3xl bg-zinc-100 dark:bg-zinc-800 px-4 py-3 text-sm text-zinc-900 dark:text-zinc-200'>
+                                {typingUsers.map((user) => user.displayName).join(', ')} typing...
+                            </div>
+                        }
                         <div className='opacity-0' ref={bottomRef}></div>
                     </div>
 

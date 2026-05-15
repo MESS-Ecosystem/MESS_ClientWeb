@@ -12,20 +12,19 @@ const Grotesque: any = Bricolage_Grotesque({
     preload: true
 })
 
-export default function page() {
-    let tl: any;
-    let [username, setUsername] = useState<string>('')
+export default function Page() {
+    const tl = useRef<any>(null);
+    const [username, setUsername] = useState<string>('')
     // let username: string = ''
     const inputRef = useRef<HTMLInputElement | null>(null);
     const bottomRef = useRef<HTMLDivElement | null>(null);
     const [MessHistory, setMessHistory] = useState<Array<Message>>([])
-    const [currentRoomName, setCurrentRoomName] = useState<String>('null')
-    let [availableUsers, setAvailableUsers] = useState<any[]>([{
-        id: 'ANBTHPQDGcmiC2qyAAAJ',
-        username: 'Test User',
-        avatar: 'placeholder5.png'
-    }])
-    let [selectedChat, setSelectedChat] = useState<null | selectedChatInterface>(null)
+    const [typingUsers, setTypingUsers] = useState<Array<TypingUser>>([])
+    const [currentRoomName, setCurrentRoomName] = useState<string>('null')
+    const [availableUsers, setAvailableUsers] = useState<any[]>([])
+    const [selectedChat, setSelectedChat] = useState<null | selectedChatInterface>(null)
+    const typingIntervalRef = useRef<number | null>(null)
+    const typingTimeoutsRef = useRef<Record<string, number>>({})
 
     const [input, setInput] = useState<userInput>({
         message: '',
@@ -52,6 +51,10 @@ export default function page() {
         isSent: boolean,
         connection: Connection | null
     }
+    interface TypingUser {
+        id: string,
+        displayName: string,
+    }
     interface selectedChatInterface {
         avatar: string,
         username: string,
@@ -62,17 +65,43 @@ export default function page() {
 
     function renderNewMessage(data: any) {
         console.log('render data: ', data);
+        const nextId = String(data?.uid || data?.id || data?.senderId || '')
+        if (nextId) {
+            setTypingUsers(prev => prev.filter((user) => user.id !== nextId))
+            if (typingTimeoutsRef.current[nextId]) {
+                window.clearTimeout(typingTimeoutsRef.current[nextId])
+                delete typingTimeoutsRef.current[nextId]
+            }
+        }
         setMessHistory(prev => [...prev, data])
     }
+
+    const handleIsTyping = (payload: any) => {
+        if (!payload?.id) return
+        const id = String(payload.id)
+        const displayName = payload.displayName || 'Anonymous'
+        setTypingUsers(prev => {
+            if (prev.some(user => user.id === id)) return prev
+            return [...prev, { id, displayName }]
+        })
+        if (typingTimeoutsRef.current[id]) {
+            window.clearTimeout(typingTimeoutsRef.current[id])
+        }
+        typingTimeoutsRef.current[id] = window.setTimeout(() => {
+            setTypingUsers(prev => prev.filter(user => user.id !== id))
+            delete typingTimeoutsRef.current[id]
+        }, 5000)
+    }
+
     function currentRoom(room: any) {
         console.log('current room: ', room);
         setCurrentRoomName(room.room);
     }
     // GSAP ANIMATIONS
     const focusInput = () => {
-        if (tl) tl.kill();
-        tl = gsap.timeline();
-        tl.to(inputRef.current, {
+        if (tl.current) tl.current.kill();
+        tl.current = gsap.timeline();
+        tl.current.to(inputRef.current, {
             // fontSize: 24,
             scale: 1.25,
             x: '-15',
@@ -80,7 +109,7 @@ export default function page() {
             duration: 0.5,
             autoRound: false,
         }, 'sync')
-        tl.to('.sendicon', {
+        tl.current.to('.sendicon', {
             // fontSize: 20,
             scale: 1.2,
             x: '-80%',
@@ -90,9 +119,9 @@ export default function page() {
         }, 'sync')
     }
     const blurInput = () => {
-        if (tl) tl.kill();
-        tl = gsap.timeline();
-        tl.to(inputRef.current, {
+        if (tl.current) tl.current.kill();
+        tl.current = gsap.timeline();
+        tl.current.to(inputRef.current, {
             // fontSize: 20,
             scale: 1,
             x: 0,
@@ -100,7 +129,7 @@ export default function page() {
             duration: 0.5,
             autoRound: false,
         }, 'sync')
-        tl.to('.sendicon', {
+        tl.current.to('.sendicon', {
             // fontSize: 20,
             scale: 1,
             x: 0,
@@ -111,13 +140,50 @@ export default function page() {
     }
 
     // EVENT HANDLERS
+    const stopTypingTicker = () => {const bottomRef = useRef<HTMLDivElement | null>(null);
+    
+        if (typingIntervalRef.current !== null) {
+            window.clearInterval(typingIntervalRef.current)
+            typingIntervalRef.current = null
+        }
+    }
+
+    const sendAmTyping = () => {
+        if (!socket || !socket.connected) return;
+        if (!username) return;
+        socket.emit('am-typing', {
+            id: socket.id,
+            displayName: username,
+        })
+    }
+
+    const startTypingTicker = (currentValue: string) => {
+        const trimmed = String(currentValue || '').trim()
+        if (!trimmed) {
+            stopTypingTicker()
+            return
+        }
+        if (typingIntervalRef.current !== null) return
+        sendAmTyping()
+        typingIntervalRef.current = window.setInterval(() => {
+            const current = inputRef.current?.value ?? ''
+            if (String(current).trim()) {
+                sendAmTyping()
+            } else {
+                stopTypingTicker()
+            }
+        }, 5000)
+    }
+
     const handleChange = (e: ChangeEvent<HTMLInputElement>) => {
+        const nextValue = e.target.value
         setInput((prev) => {
             return {
                 ...prev,
-                message: e.target.value,
+                message: nextValue,
             }
         });
+        startTypingTicker(nextValue)
     }
 
     const handleUsername = (e: any) => {
@@ -132,6 +198,7 @@ export default function page() {
         if (input.message) {
 
             socket.emit('send-message', input);
+            stopTypingTicker()
             let data: Message = {
                 message: input.message.toString(), // raw sanitized            
                 displayName: '', // just for now
@@ -140,7 +207,6 @@ export default function page() {
                 connection: null, // just for a fallback, not used on server
             }
             setMessHistory(prev => [...prev, data])
-            // console.log(MessHistory, data)
             setInput((prev) => {
                 return {
                     ...prev,
@@ -202,12 +268,14 @@ export default function page() {
 
     useEffect(() => {
         if (username !== '') {
-            let info = getPlatformInfo();
+            const info = getPlatformInfo();
+            // eslint-disable-next-line react-hooks/immutability
             socket.auth = { platformInfo: info, username: username }
             socket.connect();
             socket.emit('connectToRoom', { username: username, room: username })
             console.log('socket to /DM connected !!')
             socket.on('recieve-new-message', renderNewMessage)
+            socket.on('is-typing', handleIsTyping)
             socket.on('currentroom', currentRoom)
             socket.on('get-all-messages', (messages) => {
                 console.log('older messages: ', messages)
@@ -246,7 +314,11 @@ export default function page() {
                 socket.off('get-all-messages')
                 socket.off('currentroom')
                 socket.off('recieve-new-message')
+                socket.off('is-typing', handleIsTyping)
                 socket.disconnect();
+                stopTypingTicker()
+                Object.values(typingTimeoutsRef.current).forEach((timeoutId) => window.clearTimeout(timeoutId))
+                typingTimeoutsRef.current = {}
             }
         }
     }, [username])
@@ -335,10 +407,15 @@ export default function page() {
 
 
                             <div className='mx-auto max-w-2xl mt-24'>
+                                {typingUsers.length > 0 &&
+                                    <div className='mb-4 rounded-3xl bg-zinc-100 dark:bg-zinc-900 px-4 py-3 text-sm text-zinc-700 dark:text-zinc-300'>
+                                        {typingUsers.map((user) => user.displayName).join(', ')} typing...
+                                    </div>
+                                }
                                 {MessHistory.map((MESS, KEY) => {
                                     return (
                                         <div key={KEY}>
-                                            <MessageBlock UserID={MESS.uid} Message={MESS.message} isSent={MESS.isSent} ></MessageBlock>
+                                            <MessageBlock displayName={selectedChat.username} UserID={MESS.uid} Message={MESS.message} isSent={MESS.isSent} ></MessageBlock>
                                         </div>
                                     )
                                 })}
