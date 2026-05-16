@@ -1,9 +1,13 @@
 'use client'
 import { socket } from '../BroadcastSocket'
 import gsap from "gsap";
+import { auth } from '@/lib/auth';
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { Bricolage_Grotesque } from 'next/font/google'
 import MessageBlock from '../Components/MessageBlock';
+import { redirect } from 'next/navigation';
+import jwt from 'jsonwebtoken'
+import axios from 'axios';
 
 const Grotesque = Bricolage_Grotesque({
     preload: true,
@@ -11,6 +15,11 @@ const Grotesque = Bricolage_Grotesque({
 
 
 export default function Page() {
+
+    if (!auth.token()) {
+        redirect('/login?redirectTo=Broadcast');
+    }
+    let token = auth.token()
 
     // VARIABLES / STATES
     const tl = useRef<any>(null); // gsap timeline
@@ -29,9 +38,14 @@ export default function Page() {
         isSent: false,
     });
 
-
-
-
+    // DECODE JWT TOKEN
+    useEffect(() => {
+        if (token !== null) {
+            type DecodedToken = jwt.JwtPayload & { username?: string }
+            const extractedToken = jwt.decode(token) as DecodedToken | null
+            if (extractedToken?.username) setUsername(extractedToken.username)
+        }
+    }, [token])
 
     // INTERFACES (TYPE)
     interface userInput {
@@ -180,9 +194,17 @@ export default function Page() {
         setIsConnected(null);
         const info = getPlatformInfo();
         // eslint-disable-next-line react-hooks/immutability
-        socket.auth = { platformInfo: info, username: username, displayName: username }
+        socket.auth = { platformInfo: info, username: username, displayName: username, token }
         socket.connect();
         // rest of state handling is managed automatically by socket listeners
+    }
+    function failedConnection(error: Error) {
+        setIsConnected(false);
+        if (error.message === "Unauthorized") {
+            console.log(error.message)
+            localStorage.removeItem("token");
+            redirect("/login?redirectTo=Broadcast")
+        }
     }
 
     // SOCKET HANDLERS
@@ -256,16 +278,16 @@ export default function Page() {
             delete typingTimeoutsRef.current[id]
         }, 2000)
     }
-    const handleUsername = (e: any) => {
-        e.preventDefault();
-        setUsername(e.target.username.value);
-        setInput((prev) => {
-            return {
-                ...prev,
-                displayName: e.target.username.value,
-            }
-        })
-    }
+    // const handleUsername = (e: any) => {
+    //     e.preventDefault();
+    //     setUsername(e.target.username.value);
+    //     setInput((prev) => {
+    //         return {
+    //             ...prev,
+    //             displayName: e.target.username.value,
+    //         }
+    //     })
+    // }
 
 
     useEffect(() => {
@@ -285,8 +307,23 @@ export default function Page() {
         if (/Linux/i.test(platform)) return 'Linux';
         return 'Unknown';
     }
+
+    // confirming user token
+    useEffect(() => {
+        async function verifySession() {
+            let response = await axios.get('/api/auth/verify', {
+                headers: {
+                    'Authorization': `Bearer ${token}`,
+                }
+            })
+            console.log(response);
+        }
+    }, [])
+
+
     // SOCKET LISTENERS
     useEffect(() => {
+        console.log(username)
         const handleKeyDown = (event: KeyboardEvent) => {
             if (event.key === 'R' && event.shiftKey) {
                 if (event.target == inputRef.current) return; // preventing accidental (ui update) refresh while typing
@@ -306,10 +343,11 @@ export default function Page() {
         if (username !== '') {
             const info = getPlatformInfo();
             // eslint-disable-next-line react-hooks/immutability
-            socket.auth = { platformInfo: info, username: username, displayName: username }
+            socket.auth = { platformInfo: info, username: username, displayName: username, token }
             socket.connect(); // autoconnect is off
             setIsConnected(null) // setting connecting state before sending connection request to server
             socket.on('connect', onConnect);
+            socket.on('connect_error', failedConnection);
             socket.on('disconnect', onDisconnect);
             socket.on('recieve-new-message', renderNewMessage);
             socket.on('user-left', userLeft);
@@ -330,7 +368,7 @@ export default function Page() {
                 typingTimeoutsRef.current = {}
             }
         }
-    }, [username])
+    }, [])
 
     return (
         <>
@@ -343,8 +381,7 @@ export default function Page() {
                 </div>
 
             </div>
-            {/* username (for anonymous users) */}
-            {username === '' ?
+            {/* {username === '' ?
                 <div className='w-screen h-screen absolute top-1/2 left-1/2 -translate-1/2 flex flex-wrap justify-center items-center bg-white/60 backdrop-blur-sm'>
                     <form
                         className={` ${Grotesque.className} flex flex-col flex-wrap items-center gap-2.5 bg-white/80 backdrop-blur-xs p-5 rounded-3xl`}
@@ -357,45 +394,45 @@ export default function Page() {
                         <input type="submit" value="Chat !" className='bg-zinc-500 text-white text-3xl p-2 w-full cursor-pointer px-4 rounded-2xl mt-2.5' />
                     </form>
                 </div>
-                :
-                <>
-                    <div className='mx-auto max-w-2xl my-24 pb-30'>
+                : */}
+            <>
+                <div className='mx-auto max-w-2xl my-24 pb-30'>
 
-                        {MessHistory.map((MESS, KEY) => {
-                            return (
-                                <div key={KEY}>
-                                    {MESS.connection ? <div className='text-zinc-800 dark:text-zinc-200 text-center mx-auto'>{MESS.displayName} <span className='capitalize'>{MESS.connection?.ref}</span> with id: <span className='italic text-zinc-500 dark:text-zinc-400 font-light'>{MESS.connection?.id}</span> from <span className='text-zinc-500 dark:text-zinc-400 font-light'>{formatPlatform(MESS.connection?.platform)}</span></div> :
-                                        <MessageBlock UserID={MESS.uid} displayName={MESS.displayName} Message={MESS.message} isSent={MESS.isSent} ></MessageBlock>
-                                    }
-                                </div>
-                            )
-                        })}
-                        {typingUsers.length > 0 &&
-                            <div className='mb-4 max-w-fit rounded-3xl bg-zinc-100 dark:bg-zinc-800 px-4 py-3 text-sm text-zinc-900 dark:text-zinc-200'>
-                                {typingUsers.map((user) => user.displayName).join(', ')} typing...
+                    {MessHistory.map((MESS, KEY) => {
+                        return (
+                            <div key={KEY}>
+                                {MESS.connection ? <div className='text-zinc-800 dark:text-zinc-200 text-center mx-auto'>{MESS.displayName} <span className='capitalize'>{MESS.connection?.ref}</span> with id: <span className='italic text-zinc-500 dark:text-zinc-400 font-light'>{MESS.connection?.id}</span> from <span className='text-zinc-500 dark:text-zinc-400 font-light'>{formatPlatform(MESS.connection?.platform)}</span></div> :
+                                    <MessageBlock UserID={MESS.uid} displayName={MESS.displayName} Message={MESS.message} isSent={MESS.isSent} ></MessageBlock>
+                                }
                             </div>
-                        }
-                        <div className='opacity-0' ref={bottomRef}></div>
-                    </div>
-
-                    <form onSubmit={handleMess} className={'fixed bottom-0 md:left-1/2 md:-translate-x-1/2 left-0 mx-auto w-full flex flex-row flex-wrap items-center justify-center mb-5'}>
-                        <input
-                            ref={inputRef}
-                            onFocus={focusInput}
-                            onBlur={blurInput}
-                            type="text"
-                            className="bg-zinc-200 rounded-full md:max-w-auto max-w-screen text-xl px-5 py-3"
-                            value={input.message}
-                            onChange={handleChange}
-                        />
-                        <div onClick={handleMess} className="text-black max-w-12 m-0 ms-2 my-auto flex flex-wrap justify-center items-center p-3 bg-zinc-100 rounded-full sendicon" >
-                            <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-                                <path d="M7 17L17 7M17 7H7M17 7V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                            </svg>
+                        )
+                    })}
+                    {typingUsers.length > 0 &&
+                        <div className='mb-4 max-w-fit rounded-3xl bg-zinc-100 dark:bg-zinc-800 px-4 py-3 text-sm text-zinc-900 dark:text-zinc-200'>
+                            {typingUsers.map((user) => user.displayName).join(', ')} typing...
                         </div>
-                    </form>
-                </>
-            }
+                    }
+                    <div className='opacity-0' ref={bottomRef}></div>
+                </div>
+
+                <form onSubmit={handleMess} className={'fixed bottom-0 md:left-1/2 md:-translate-x-1/2 left-0 mx-auto w-full flex flex-row flex-wrap items-center justify-center mb-5'}>
+                    <input
+                        ref={inputRef}
+                        onFocus={focusInput}
+                        onBlur={blurInput}
+                        type="text"
+                        className="bg-zinc-200 rounded-full md:max-w-auto max-w-screen text-xl px-5 py-3 pe-15"
+                        value={input.message}
+                        onChange={handleChange}
+                    />
+                    <div onClick={handleMess} className="text-black max-w-12 m-0 ms-2 my-auto flex flex-wrap justify-center items-center p-3 bg-zinc-100 rounded-full sendicon" >
+                        <svg width="100%" height="100%" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M7 17L17 7M17 7H7M17 7V17" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                        </svg>
+                    </div>
+                </form>
+            </>
+            {/* } */}
         </>
     )
 }

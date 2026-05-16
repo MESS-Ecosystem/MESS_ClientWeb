@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { Bricolage_Grotesque } from 'next/font/google';
 import axios from 'axios';
+import { redirect, useSearchParams } from 'next/navigation';
+import { auth } from '@/lib/auth';
 
 const Grotesque = Bricolage_Grotesque({
     preload: true
@@ -11,6 +13,7 @@ const Grotesque = Bricolage_Grotesque({
 export default function LoginPage() {
     const [isLogin, setIsLogin] = useState<boolean>(true);
     const [isRegistered, setIsRegistered] = useState<boolean>(false)
+    const searchParams = useSearchParams();
     interface loginDataInterface {
         username: string | readonly string[],
         password: string | readonly string[],
@@ -62,19 +65,25 @@ export default function LoginPage() {
                 return;
             }
 
-            let response = await axios.post('/api/auth/login', {
+            var response = await axios.post('/api/auth/login', {
                 username: loginData.username,
                 password: loginData.password,
             })
-
-
-
-
         } catch (err) {
             console.log(err)
             setError('Login failed. Please try again.');
         } finally {
             setLoading(false);
+        }
+        if (response) {
+            auth.setToken(response.data.token)
+            console.log(response.data, response)
+            let redirectTo = searchParams.get('redirectTo');
+            if (redirectTo !== null) {
+                redirectTo = redirectTo.toString()
+                console.log(redirectTo)
+                redirect(`/${redirectTo}`) // typescript dont understand without this
+            } else redirect('/')
         }
     };
 
@@ -114,10 +123,11 @@ export default function LoginPage() {
                 displayName: registerData.displayname || registerData.username,
             })
 
-            if(response.status === 201 || response.status === 200) {
+            if (response.status === 201 || response.status === 200) {
                 setIsRegistered(true);
+                let { redirectTo } = useParams()
+                redirect((redirectTo as string) || '/')
             }
-
 
         } catch (err) {
             setError('Registration failed. Please try again.');
@@ -304,7 +314,7 @@ export default function LoginPage() {
                             {/* Submit Button */}
                             <button
                                 type="submit"
-                                disabled={loading}                                
+                                disabled={loading}
                                 className={`w-full py-3 px-4 bg-black text-white font-medium rounded-lg hover:bg-gray-900  dark:hover:bg-zinc-950 disabled:bg-gray-400 transition-colors duration-200 mt-8 text-base ${isRegistered && 'bg-emerald-300 !text-black'}`}
                             >
                                 {loading ? 'Creating account...' : isRegistered ? 'Account Created Successfully' : 'Register'}

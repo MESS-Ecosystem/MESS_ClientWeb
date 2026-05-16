@@ -9,9 +9,10 @@ export function Providers({ children }: Readonly<{ children: React.ReactNode }>)
     let pathRef = useRef<SVGPathElement | null>(null);
     let [totalLength, setTotalLength] = useState(550.7265014648438);
     useEffect(() => {
-        if (pathRef.current) setTotalLength(pathRef.current.getTotalLength())
-        console.log(totalLength);
-    })
+        if (pathRef.current) {
+            setTotalLength(pathRef.current.getTotalLength())
+        }
+    }, [totalLength])
     return (
         <>
             <TransitionRouter

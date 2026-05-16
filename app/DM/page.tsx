@@ -5,6 +5,9 @@ import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { socket } from "../DMSocket";
 import gsap from "gsap";
 import MessageBlock from "../Components/MessageBlock";
+import { auth } from "@/lib/auth";
+import jwt from 'jsonwebtoken'
+import { redirect } from "next/navigation";
 const DMSans: any = DM_Sans({
     preload: true
 })
@@ -13,6 +16,12 @@ const Grotesque: any = Bricolage_Grotesque({
 })
 
 export default function Page() {
+
+    if (!auth.token()) {
+        redirect('/login?redirectTo=DM');
+    }
+    let token = auth.token()
+
     const tl = useRef<any>(null);
     const [username, setUsername] = useState<string>('')
     // let username: string = ''
@@ -25,6 +34,18 @@ export default function Page() {
     const [selectedChat, setSelectedChat] = useState<null | selectedChatInterface>(null)
     const typingIntervalRef = useRef<number | null>(null)
     const typingTimeoutsRef = useRef<Record<string, number>>({})
+
+
+
+    useEffect(() => {
+        if (token !== null) {
+            type DecodedToken = jwt.JwtPayload & { username?: string }
+            const extractedToken = jwt.decode(token) as DecodedToken | null
+            if (extractedToken?.username) setUsername(extractedToken.username)
+        }
+    }, [token])
+
+
 
     const [input, setInput] = useState<userInput>({
         message: '',
@@ -140,9 +161,9 @@ export default function Page() {
     }
 
     // EVENT HANDLERS
-    const stopTypingTicker = () => {const bottomRef = useRef<HTMLDivElement | null>(null);
-    
-        if (typingIntervalRef.current !== null) {
+    const stopTypingTicker = () => {
+        // const bottomRef = useRef<HTMLDivElement | null>(null);
+        if (typingIntervalRef.current != null) {
             window.clearInterval(typingIntervalRef.current)
             typingIntervalRef.current = null
         }
@@ -186,10 +207,10 @@ export default function Page() {
         startTypingTicker(nextValue)
     }
 
-    const handleUsername = (e: any) => {
-        e.preventDefault();
-        setUsername(e.target.username.value);
-    }
+    // const handleUsername = (e: any) => {
+    //     e.preventDefault();
+    //     setUsername(e.target.username.value);
+    // }
 
     // Sending Message
     const handleMess = (e: any) => {
@@ -231,9 +252,10 @@ export default function Page() {
         const fetchUsers = async () => {
             // using direct get requests, for testing
             // will be changed to specific websocket connection, that only gets status
-            let users: any = await axios.get('/api/dmusers')
+            let users: any = await axios.get(`${process.env.NEXT_PUBLIC_SERVER_API_URL}/dmusers`)
+            console.log('user from DB: ', users)
             // if(users === []) {
-            if (JSON.stringify(users.data) === '[]' || users.data.length == 0) {
+            if (users.data == null || users?.data?.length == 0) {
                 setAvailableUsers(
                     [{
                         id: 'ANBTHPQDGcmiC2qyAAAJ',
@@ -243,16 +265,19 @@ export default function Page() {
                 )
             } else {
                 console.log(users.data);
-                const avatarusers = users.data.map(user => ({
+                const avatarusers = users.data?.map((user: any) => ({
                     ...user,
                     avatar: `placeholder${Math.floor(Math.random() * 7)}.png`
                 }));
                 setAvailableUsers(avatarusers);
             }
         }
-        fetchUsers();
+        username && fetchUsers();
     }, [username])
 
+    useEffect(() => {
+        console.log(availableUsers)
+    }, [availableUsers])
 
     function getPlatformInfo() {
         const userAgent = window.navigator.userAgent;
@@ -270,10 +295,9 @@ export default function Page() {
         if (username !== '') {
             const info = getPlatformInfo();
             // eslint-disable-next-line react-hooks/immutability
-            socket.auth = { platformInfo: info, username: username }
+            socket.auth = { platformInfo: info, username: username, token }
             socket.connect();
             socket.emit('connectToRoom', { username: username, room: username })
-            console.log('socket to /DM connected !!')
             socket.on('recieve-new-message', renderNewMessage)
             socket.on('is-typing', handleIsTyping)
             socket.on('currentroom', currentRoom)
@@ -321,7 +345,7 @@ export default function Page() {
                 typingTimeoutsRef.current = {}
             }
         }
-    }, [username])
+    }, [])
 
 
 
@@ -344,7 +368,7 @@ export default function Page() {
 
 
             {/* username (for anonymous users) */}
-            {username === '' &&
+            {/* {username === '' &&
                 <div className='w-screen h-screen absolute z-10 top-1/2 left-1/2 -translate-1/2 flex flex-wrap justify-center items-center bg-white/60 backdrop-blur-sm'>
                     <form
                         className={` ${Grotesque.className} flex flex-col flex-wrap items-center gap-2.5 bg-white/80 backdrop-blur-xs p-5 rounded-3xl`}
@@ -357,7 +381,7 @@ export default function Page() {
                         <input type="submit" value="Chat !" className='bg-zinc-500 text-white text-3xl p-2 w-full cursor-pointer px-4 rounded-2xl mt-2.5' />
                     </form>
                 </div>
-            }
+            } */}
 
 
 

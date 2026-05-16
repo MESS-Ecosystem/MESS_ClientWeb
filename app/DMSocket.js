@@ -2,8 +2,7 @@
 import { io } from 'socket.io-client';
 
 // "undefined" means the URL will be computed from the `window.location` object
-const URL = process.env.NODE_ENV === 'production' ? undefined : 'https://mess-backend-qseb.onrender.com/DM';
-
+const URL = process.env.NODE_ENV === 'production' ? undefined : `${process.env.NEXT_PUBLIC_SERVER_API_URL}/DM`;
 
 // async function getPlatformInfo() {
 //     if (typeof window !== "undefined" && window.navigator.userAgentData) {
