@@ -16,10 +16,6 @@ const Grotesque: any = Bricolage_Grotesque({
 })
 
 export default function Page() {
-
-    if (!auth.token()) {
-        redirect('/login?redirectTo=DM');
-    }
     let token = auth.token()
 
     const tl = useRef<any>(null);
@@ -32,6 +28,9 @@ export default function Page() {
     const [currentRoomName, setCurrentRoomName] = useState<string>('null')
     const [availableUsers, setAvailableUsers] = useState<any[]>([])
     const [selectedChat, setSelectedChat] = useState<null | selectedChatInterface>(null)
+    const [IsSearching, setIsSearching] = useState<Boolean>(false)
+    const [searchedUsers, setSearchedUsers] = useState<any[] | null>([])
+    // const [searchedUsers, setSearchedUsers] = useState<any[] | null>(null)
     const typingIntervalRef = useRef<number | null>(null)
     const typingTimeoutsRef = useRef<Record<string, number>>({})
 
@@ -44,8 +43,6 @@ export default function Page() {
             if (extractedToken?.username) setUsername(extractedToken.username)
         }
     }, [token])
-
-
 
     const [input, setInput] = useState<userInput>({
         message: '',
@@ -77,7 +74,7 @@ export default function Page() {
         displayName: string,
     }
     interface selectedChatInterface {
-        avatar: string,
+        profile: string,
         username: string,
         userId: object,
         id: string
@@ -85,7 +82,7 @@ export default function Page() {
     // let [availableUsers, setAvailableUsers] = useState<Array<Object>>([])
 
     function renderNewMessage(data: any) {
-        console.log('render data: ', data);
+        console.log('render data: ', data.data);
         const nextId = String(data?.uid || data?.id || data?.senderId || '')
         if (nextId) {
             setTypingUsers(prev => prev.filter((user) => user.id !== nextId))
@@ -94,13 +91,13 @@ export default function Page() {
                 delete typingTimeoutsRef.current[nextId]
             }
         }
-        setMessHistory(prev => [...prev, data])
+        setMessHistory(prev => [...prev, data.data])
     }
 
     const handleIsTyping = (payload: any) => {
         if (!payload?.id) return
         const id = String(payload.id)
-        const displayName = payload.displayName || 'Anonymous'
+        const displayName = payload.displayName || payload.username || 'Anonymous'
         setTypingUsers(prev => {
             if (prev.some(user => user.id === id)) return prev
             return [...prev, { id, displayName }]
@@ -207,17 +204,50 @@ export default function Page() {
         startTypingTicker(nextValue)
     }
 
+    const handleSearchUser = () => {
+        setIsSearching(true);
+    }
+    const handleSearchInput = (e: ChangeEvent<HTMLInputElement>) => {
+        setSearchedUsers(null)
+        if (e.target.value.length >= 3) searchUserOnServer(e.target.value)
+        else setSearchedUsers([])
+    }
+    function throttle(func: Function, delay = 1000) {
+        let shouldWait = false;
+        return function (this: any, ...args: any) {
+            if (shouldWait) return; // Ignore calls if we are in the waiting period
+            func.apply(this, args); // Execute the function immediately
+            shouldWait = true;
+            setTimeout(() => {
+                shouldWait = false; // Reset the flag after the delay
+            }, delay);
+        };
+    }
+    const searchUserOnServer = throttle(async (username: String) => {
+        setSearchedUsers(null)
+        let searchedUser = await axios.get(`/api/account/search?username=${username}`, {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        })
+        console.log(searchedUser)
+        setSearchedUsers(searchedUser.data)
+    }, 1000)
+
+
     // const handleUsername = (e: any) => {
     //     e.preventDefault();
     //     setUsername(e.target.username.value);
     // }
 
+
     // Sending Message
+
     const handleMess = (e: any) => {
         e.preventDefault();
         // console.log(input);
+        input.message = input.message?.toString().trim()
         if (input.message) {
-
             socket.emit('send-message', input);
             stopTypingTicker()
             let data: Message = {
@@ -240,13 +270,21 @@ export default function Page() {
     const ChatWithID = async (socket_user: selectedChatInterface) => {
         // join room with the socketid
         setSelectedChat(socket_user);
-
         // let sorted = username < socket_user.username 
-        let roomID = username < socket_user.username ? `${username}-to-${socket_user.username}` : `${socket_user.username}-to-${username}`
-        socket.emit('connectToRoom', { username: username, room: roomID })
+        socket.emit('chatwith', { username: socket_user.username })
         setMessHistory([])
-
         socket.emit('get-all-messages');
+    }
+    const addUserToChatlist = (userInfo: any) => {
+        setAvailableUsers(prev => {
+            return [{
+                username: userInfo.username,
+                id: userInfo?.id,
+                profile: userInfo.profile,
+                email: userInfo.email,
+            }, ...prev]
+        })
+        setIsSearching(false)
     }
     useEffect(() => {
         const fetchUsers = async () => {
@@ -260,16 +298,16 @@ export default function Page() {
                     [{
                         id: 'ANBTHPQDGcmiC2qyAAAJ',
                         username: 'Test User',
-                        avatar: 'placeholder5.png'
+                        profile: 'placeholder5.png'
                     }]
                 )
             } else {
                 console.log(users.data);
-                const avatarusers = users.data?.map((user: any) => ({
+                const profileusers = users.data?.map((user: any) => ({
                     ...user,
-                    avatar: `placeholder${Math.floor(Math.random() * 7)}.png`
+                    profile: `placeholder${Math.floor(Math.random() * 7)}.png`
                 }));
-                setAvailableUsers(avatarusers);
+                setAvailableUsers(profileusers);
             }
         }
         username && fetchUsers();
@@ -292,18 +330,22 @@ export default function Page() {
     }
 
     useEffect(() => {
+        token = auth.token()
+        console.log(token)
+        if (!token) {
+            redirect('/login?redirectTo=DM');
+        }
         if (username !== '') {
             const info = getPlatformInfo();
             // eslint-disable-next-line react-hooks/immutability
             socket.auth = { platformInfo: info, username: username, token }
             socket.connect();
-            socket.emit('connectToRoom', { username: username, room: username })
+            // socket.emit('connectToRoom', { username: username, room: username })
             socket.on('recieve-new-message', renderNewMessage)
             socket.on('is-typing', handleIsTyping)
-            socket.on('currentroom', currentRoom)
+            // socket.on('currentroom', currentRoom)
             socket.on('get-all-messages', (messages) => {
-                console.log('older messages: ', messages)
-
+                // console.log('older messages: ', messages)
                 let messageArray = messages.map((singlemessage: any) => {
                     return {
                         message: singlemessage.content,
@@ -323,20 +365,20 @@ export default function Page() {
                 // connection: Connection | null
 
             })
-            socket.on('userconnected', (data) => {
-                console.log(data)
-                setAvailableUsers(prev => [...prev, {
-                    username: data.username,
-                    id: data?.id,
-                    avatar: `placeholder${Math.floor(Math.random() * 7)}.png`,
-                }])
-            })
+            // socket.on('userconnected', (data) => {
+            //     console.log(data)
+            //     setAvailableUsers(prev => [...prev, {
+            //         username: data.username,
+            //         id: data?.id,
+            //         profile: `placeholder${Math.floor(Math.random() * 7)}.png`,
+            //     }])
+            // })
         }
         return () => {
             if (username !== '') {
-                socket.off('userconnected')
+                // socket.off('userconnected')
                 socket.off('get-all-messages')
-                socket.off('currentroom')
+                // socket.off('currentroom')
                 socket.off('recieve-new-message')
                 socket.off('is-typing', handleIsTyping)
                 socket.disconnect();
@@ -345,17 +387,17 @@ export default function Page() {
                 typingTimeoutsRef.current = {}
             }
         }
-    }, [])
+    }, [username, token])
 
 
 
     // useEffect(() => {
-    //     const avatarUsers = availableUsers.map(user => ({
+    //     const profileUsers = availableUsers.map(user => ({
     //         ...user,
-    //         avatar: user.avatar ?? `placeholder${Math.floor(Math.random() * 7)}.png`
+    //         profile: user.profile ?? `placeholder${Math.floor(Math.random() * 7)}.png`
     //     }));
 
-    //     setAvailableUsers(avatarUsers);
+    //     setAvailableUsers(profileUsers);
     // }, [availableUsers]);
 
 
@@ -364,78 +406,114 @@ export default function Page() {
     }, [MessHistory])
 
     return (
-        <div className='w-screen flex flex-row flex-wrap' style={{ minHeight: "calc(100vh - 64px)" }}>
+        <div className='w-screen flex flex-row flex-wrap max-h-[calc(90vh-64px)] ' style={{ minHeight: "calc(100vh - 64px)" }}>
 
+            {IsSearching &&
+                <div className='absolute top-0 left-0 backdrop-blur-sm w-screen h-screen z-40'>
+                    <div className='bg-white absolute top-1/2 left-1/2 -translate-1/2 rounded-2xl py-10 px-14'>
+                        <div className='w-full h-full relative'>
+                            <h3 className='text-3xl font-medium'>Find Users</h3>
+                            <form className='py-5'>
+                                <input
+                                    type="text"
+                                    name="searchinput"
+                                    id="searchinput"
+                                    placeholder="username or phone"
+                                    className='p-3 rounded-xl text-xl border-2 border-zinc-200 duration-200'
+                                    onChange={handleSearchInput}
+                                />
+                            </form>
 
-            {/* username (for anonymous users) */}
-            {/* {username === '' &&
-                <div className='w-screen h-screen absolute z-10 top-1/2 left-1/2 -translate-1/2 flex flex-wrap justify-center items-center bg-white/60 backdrop-blur-sm'>
-                    <form
-                        className={` ${Grotesque.className} flex flex-col flex-wrap items-center gap-2.5 bg-white/80 backdrop-blur-xs p-5 rounded-3xl`}
-                        onSubmit={handleUsername}
-                    >
-                        <div>
-                            <label htmlFor="username" className='text-3xl font-semibold'>Username: </label>
-                            <input type="text" id="username" name="username" className='bg-zinc-100 border border-zinc-300 rounded-2xl py-3 px-6 text-xl' />
+                            {searchedUsers === null
+                                ?
+                                <div className="flex flex-row flex-wrap justify-center items-center bg-zinc-100 rounded-xl p-1.5 px-3">
+                                    {/* <img src={''} className='max-w-16 bg-transparent p-1 rounded-full aspect-square object-cover' alt="" /> */}
+                                    <div className="w-16 h-16 rounded-full overflow-hidden p-1">
+                                        <div className="w-full h-full bg-zinc-300 rounded-full"></div>
+                                    </div>
+                                    <div className='flex flex-col flex-wrap justify-center gap-2 px-5 py-3 w-[calc(100%-70px)] h-full'>
+                                        <div className={`${Grotesque.className} bg-zinc-400 leading-6 w-full h-3 rounded-2xl`}></div>
+                                        <div className='bg-zinc-200 text-sm leading-4 w-full h-2 rounded-2xl'></div>
+                                    </div>
+                                </div>
+                                :
+                                searchedUsers.map((user, index) => {
+                                    return <div
+                                        className="flex flex-row flex-wrap bg-zinc-100 rounded-xl p-1.5 px-3 duration-200 *:duration-200 cursor-pointer"
+                                        onClick={() => addUserToChatlist(user)}
+                                    >
+                                        <img src={user.profile} className='max-w-16 bg-zinc-500 m-1 rounded-full aspect-square object-cover' alt="" />
+                                        <div className='flex flex-col flex-wrap justify-center px-5 py-3'>
+                                            <p className={`${Grotesque.className} text-3xl leading-6`}>{user.username}</p>
+                                            <p className='text-zinc-500 text-sm leading-4'>{user.phone}</p>
+                                        </div>
+                                    </div>
+                                })}
+                            <div className='absolute top-0 right-0 cursor-pointer'
+                                onClick={() => {
+                                    setIsSearching(false)
+                                }}
+                            >
+                                <svg width="28px" height="28px" viewBox="0 0 24 24" fill="none">
+                                    <path fill-rule="evenodd" clip-rule="evenodd" d="M5.29289 5.29289C5.68342 4.90237 6.31658 4.90237 6.70711 5.29289L12 10.5858L17.2929 5.29289C17.6834 4.90237 18.3166 4.90237 18.7071 5.29289C19.0976 5.68342 19.0976 6.31658 18.7071 6.70711L13.4142 12L18.7071 17.2929C19.0976 17.6834 19.0976 18.3166 18.7071 18.7071C18.3166 19.0976 17.6834 19.0976 17.2929 18.7071L12 13.4142L6.70711 18.7071C6.31658 19.0976 5.68342 19.0976 5.29289 18.7071C4.90237 18.3166 4.90237 17.6834 5.29289 17.2929L10.5858 12L5.29289 6.70711C4.90237 6.31658 4.90237 5.68342 5.29289 5.29289Z"
+                                        fill="#000000" />
+                                </svg>
+                            </div>
                         </div>
-                        <input type="submit" value="Chat !" className='bg-zinc-500 text-white text-3xl p-2 w-full cursor-pointer px-4 rounded-2xl mt-2.5' />
-                    </form>
+                    </div>
                 </div>
-            } */}
-
+            }
 
 
             <div
-                className=' text-black dark:text-white duration-150 basis-1/5 w-full relative p-5 ps-10'
-                style={{ minHeight: "calc(90vh - 64px)" }}
+                className=' text-black dark:text-white duration-150 xl:basis-1/5 lg:basis-2/5 w-full relative p-5 ps-10 max-h-[calc(100vh-64px)]'
+                style={{ minHeight: "calc(100vh - 64px)" }}
             >
                 <div className='dark:bg-white/20 bg-black/10 w-full h-full p-3 rounded-3xl'>
-                    <h3 className={` ${DMSans.className} text-4xl font-light tracking-tight ps-5 pt-3`}>Messages</h3>
+                    <h3 className={` ${DMSans.className} text-4xl font-light tracking-tight ps-5 pt-3 wrap-anywhere`}>Messages</h3>
+                    <div
+                        className='flex flex-row flex-wrap items-center justify-between gap-3 bg-white/60 rounded-2xl py-2 px-5 my-2 cursor-pointer'
+                        onClick={handleSearchUser}
+                    >
+                        <p className={`${Grotesque.className} text-xl`}>Find users</p>
+                        <img src={`/magnifying-glass.png`} className='max-w-8 bg-transparent' alt="" />
+                    </div>
                     <div className='flex flex-col flex-wrap mt-8 gap-2'>
                         {availableUsers.map((user, id) => {
                             return (
                                 <div key={user.id} onClick={() => ChatWithID(user)} className='flex flex-row flex-wrap cursor-pointer items-center gap-5 w-full text-xl font-semibold bg-white px-5 py-3 rounded-2xl'>
-                                    <img src={`/placeholder_profiles/${user.avatar}`} className='max-w-12 bg-transparent' alt="" />
+                                    <img src={user.profile} className='max-w-16 bg-zinc-500 rounded-full aspect-square object-cover' alt="" />
                                     {user.username}
                                 </div>
                             )
                         })}
                     </div>
-
-                    <div className={` ${Grotesque.className} font-semibold absolute bottom-0 left-0 w-full py-3 -translate-y-1/4 text-center bg-white/50 text-3xl uppercase`}>
-                        {username}
-                    </div>
                 </div>
 
             </div>
             <div
-                className={` text-black dark:text-white duration-150 xl:basis-4/5 lg:basis-3/5 mx-auto rounded-3xl my-5 px-1 pe-10`}
+                className={` text-black dark:text-white duration-150 xl:basis-4/5 lg:basis-3/5 mx-auto rounded-3xl my-5 px-1 pe-10 overflow-hidden`}
             >
-                <div className={`dark:bg-white/20 bg-black/10 w-full h-full p-3 rounded-3xl flex ${selectedChat === null && 'justify-center items-center'} `}>
+                <div className={`dark:bg-white/20 bg-black/10 w-full h-full max-h-full min-h-full mt-8 p-3 rounded-3xl flex ${selectedChat === null && 'justify-center items-center'} `}>
 
                     {selectedChat === null ?
                         <h4 className={`text-5xl font-semibold opacity-0 duration-200 ${selectedChat === null && 'opacity-100'} ${Grotesque.className} `}>Select a friend to Chat with </h4>
                         :
-                        <div className='w-full h-full relative'>
+                        <div className='w-full h-auto max-h-[calc(100vh-150px)] min-h-[calc(90vh-150px)] relative'>
                             <div className='chat-header w-full h-16 flex flex-row flex-wrap items-center justify-between gap-2 px-5 rounded-2xl text-2xl bg-white '>
 
                                 <div className='flex flex-row flex-wrap items-center'>
-                                    <img src={`/placeholder_profiles/${selectedChat.avatar}`} className='max-w-12 bg-transparent object-contain' alt="" />
+                                    <img src={selectedChat.profile} className='max-w-12 bg-zinc-500 rounded-full aspect-square object-cover' alt="" />
                                     <p className='ps-5 font-semibold'>{selectedChat.username}</p>
                                 </div>
-                                <div className='text-xl font-semibold flex flex-wrap items-center'>
+                                {/* <div className='text-xl font-semibold flex flex-wrap items-center'>
                                     {currentRoomName}
-                                </div>
+                                </div> */}
 
                             </div>
 
 
-                            <div className='mx-auto max-w-2xl mt-24'>
-                                {typingUsers.length > 0 &&
-                                    <div className='mb-4 rounded-3xl bg-zinc-100 dark:bg-zinc-900 px-4 py-3 text-sm text-zinc-700 dark:text-zinc-300'>
-                                        {typingUsers.map((user) => user.displayName).join(', ')} typing...
-                                    </div>
-                                }
+                            <div className='mx-auto max-w-2xl pb-24 overflow-y-scroll max-h-[calc(100vh-180px)] min-h-[calc(100vh-180px)]'>
                                 {MessHistory.map((MESS, KEY) => {
                                     return (
                                         <div key={KEY}>
@@ -443,11 +521,16 @@ export default function Page() {
                                         </div>
                                     )
                                 })}
+                                {typingUsers.length > 0 &&
+                                    <div className=' w-fit mb-4 rounded-3xl bg-zinc-100 dark:bg-zinc-900 px-4 py-3 text-sm text-zinc-700 dark:text-zinc-300'>
+                                        {typingUsers.map((user) => user.displayName).join(', ')} typing...
+                                    </div>
+                                }
                                 <div className='opacity-0' ref={bottomRef}></div>
                             </div>
 
 
-                            <form onSubmit={handleMess} className={'absolute bottom-0 md:left-1/2 md:-translate-x-1/2 left-0 mx-auto w-full flex flex-row flex-wrap items-center justify-center mb-5'}>
+                            <form onSubmit={handleMess} className={'absolute bottom-0 md:left-1/2 md:-translate-x-1/2 left-0 mx-auto w-full flex flex-row flex-wrap items-center justify-center '}>
                                 <input
                                     ref={inputRef}
                                     onFocus={focusInput}

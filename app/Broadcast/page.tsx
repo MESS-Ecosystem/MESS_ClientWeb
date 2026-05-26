@@ -25,8 +25,7 @@ export default function Page() {
     const tl = useRef<any>(null); // gsap timeline
     const inputRef = useRef<HTMLInputElement | null>(null);
     const bottomRef = useRef<HTMLDivElement | null>(null);
-    // const [username, setUsername] = useState<string>('')
-    let username: String = ''
+    const [username, setUsername] = useState<string>('')
     const [isConnected, setIsConnected] = useState<boolean | null>(false);
     const [MessHistory, setMessHistory] = useState<Array<Message>>([])
     const [typingUsers, setTypingUsers] = useState<Array<TypingUser>>([])
@@ -41,14 +40,17 @@ export default function Page() {
 
     // DECODE JWT TOKEN
     useEffect(() => {
+        console.log('updating username')
         if (token !== null) {
             type DecodedToken = jwt.JwtPayload & { username?: string }
             const extractedToken = jwt.decode(token) as DecodedToken | null
-            if (extractedToken?.username) 
-                username = extractedToken?.username
-                // setUsername(extractedToken?.username)
-
-                console.log(extractedToken?.username)
+            if (extractedToken?.username) setUsername(extractedToken.username)
+            console.log(extractedToken)
+            let extractedusername = extractedToken?.username
+            if (extractedusername) {
+                console.log('fetched username:', extractedusername)
+                setUsername(extractedusername)
+            }
         }
     }, [token])
 
@@ -195,6 +197,7 @@ export default function Page() {
     }
 
     function retryConnection() {
+        socket.disconnect()
         console.log('reconnecting...')
         setIsConnected(null);
         const info = getPlatformInfo();
@@ -348,9 +351,8 @@ export default function Page() {
         if (username !== '') {
             const info = getPlatformInfo();
             // eslint-disable-next-line react-hooks/immutability
-            socket.auth = { platformInfo: info, username: username, displayName: username, token: token }
+            socket.auth = { platformInfo: info, username: username, displayName: username, token }
             socket.connect(); // autoconnect is off
-            console.log('connecting to socket!!')
             setIsConnected(null) // setting connecting state before sending connection request to server
             socket.on('connect', onConnect);
             socket.on('connect_error', failedConnection);
@@ -360,7 +362,9 @@ export default function Page() {
             socket.on('user-connected', userJoined);
             socket.on('is-typing', handleIsTyping);
             document.addEventListener('keydown', handleKeyDown);
-        } else console.log('no username, not connecting to socket')
+        } else {
+            console.log(`no username found "${username}"`)
+        }
         return () => {
             if (username !== '') {
                 socket.off('user-left');
@@ -374,7 +378,7 @@ export default function Page() {
                 typingTimeoutsRef.current = {}
             }
         }
-    }, [token])
+    }, [username, token])
 
     return (
         <>
