@@ -30,6 +30,7 @@ export default function Page() {
     const [selectedChat, setSelectedChat] = useState<null | selectedChatInterface>(null)
     const [IsSearching, setIsSearching] = useState<Boolean>(false)
     const [searchedUsers, setSearchedUsers] = useState<any[] | null>([])
+    const [notification, setNotification] = useState<any>([])
     // const [searchedUsers, setSearchedUsers] = useState<any[] | null>(null)
     const typingIntervalRef = useRef<number | null>(null)
     const typingTimeoutsRef = useRef<Record<string, number>>({})
@@ -212,6 +213,44 @@ export default function Page() {
         if (e.target.value.length >= 3) searchUserOnServer(e.target.value)
         else setSearchedUsers([])
     }
+
+    const handleNotification = (data: any) => {
+        console.log('notification: ', data)
+        // setNotification((prev: any) => {
+        //     return [{
+        //         userId: {},
+        //         content: data.data.message,
+        //         timeStamp: data.data.timeStamp,
+        //         username: data.data.username
+        //     }, ...prev]
+        // })
+
+        setNotification(prev => {
+
+            console.log('PREV:', prev)
+            console.log(Array.isArray(prev))
+
+            const next = [
+
+                {
+                    userId: {},
+                    content: data.data.message,
+                    timeStamp: data.data.timestamp,
+                    username: data.data.username
+                },
+
+                ...prev
+            ]
+
+            console.log('NEXT:', next)
+
+            return next
+        })
+    }
+
+    useEffect(() => {
+        console.log("notification: ", notification)
+    }, [notification])
     function throttle(func: Function, delay = 1000) {
         let shouldWait = false;
         return function (this: any, ...args: any) {
@@ -342,6 +381,7 @@ export default function Page() {
             socket.connect();
             // socket.emit('connectToRoom', { username: username, room: username })
             socket.on('recieve-new-message', renderNewMessage)
+            socket.on('dm-notification', handleNotification)
             socket.on('is-typing', handleIsTyping)
             // socket.on('currentroom', currentRoom)
             socket.on('get-all-messages', (messages) => {
@@ -441,6 +481,7 @@ export default function Page() {
                                     return <div
                                         className="flex flex-row flex-wrap bg-zinc-100 rounded-xl p-1.5 px-3 duration-200 *:duration-200 cursor-pointer"
                                         onClick={() => addUserToChatlist(user)}
+                                        key={index}
                                     >
                                         <img src={user.profile} className='max-w-16 bg-zinc-500 m-1 rounded-full aspect-square object-cover' alt="" />
                                         <div className='flex flex-col flex-wrap justify-center px-5 py-3'>
@@ -481,9 +522,40 @@ export default function Page() {
                     <div className='flex flex-col flex-wrap mt-8 gap-2'>
                         {availableUsers.map((user, id) => {
                             return (
-                                <div key={user.id} onClick={() => ChatWithID(user)} className='flex flex-row flex-wrap cursor-pointer items-center gap-5 w-full text-xl font-semibold bg-white px-5 py-3 rounded-2xl'>
-                                    <img src={user.profile} className='max-w-16 bg-zinc-500 rounded-full aspect-square object-cover' alt="" />
-                                    {user.username}
+                                <div key={id} onClick={() => ChatWithID(user)} className='flex flex-row flex-wrap cursor-pointer items-center justify-between w-full text-xl font-semibold bg-white px-5 py-3 rounded-2xl'>
+                                    <div className='flex flex-row flex-wrap items-center gap-5'>
+                                        <img src={user.profile} className='max-w-16 bg-zinc-500 rounded-full aspect-square object-cover' alt="" />
+                                        <div className='flex flex-col flex-wrap'>
+                                            <p>{user.username}</p>
+                                            <div className='notify text-sm text-zinc-500'>
+                                                {
+                                                    (() => {
+
+                                                        const notify = notification.find((notify: any) =>
+                                                            notify.username?.toString().toLowerCase() ===
+                                                            user.username?.toString().toLowerCase()
+                                                        )
+
+                                                        if (!notify) return null
+
+                                                        return notify.content.length > 12
+                                                            ? notify.content.substring(0, 12) + '...'
+                                                            : notify.content
+
+                                                    })()
+                                                }
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div className='bg-emerald-300 text-emerald-700 aspect-square w-8 h-8 text-center flex flex-row flex-wrap justify-center items-center rounded-full text-base font-mono leading-0'>
+                                        <p className='mx-auto my-auto p-0'>
+                                            {notification.map((notify: any, index: any) => {
+                                                if (notify.username.toString().toLowerCase() == user.username.toString().toLowerCase()) {
+                                                    return notify.unreadCount
+                                                }
+                                            })}
+                                        </p>
+                                    </div>
                                 </div>
                             )
                         })}
