@@ -4,7 +4,7 @@ import axios from "axios"
 import jwt from "jsonwebtoken"
 import { Bricolage_Grotesque, Syne as SyneRaw } from "next/font/google"
 import { redirect } from "next/navigation"
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, type ChangeEvent } from "react"
 import AvatarEditor, { useAvatarEditor } from "react-avatar-editor"
 const Grotesque: any = Bricolage_Grotesque({
     preload: true
@@ -17,9 +17,11 @@ export default function Page() {
     let [panel, setPanel] = useState<string>("onboarding")
     let [logoutPanel, setLogoutPanel] = useState<Boolean>(false)
     let [user, setUser] = useState<any>({})
-    let [image, setImage] = useState<any>("")
+    let [profileImage, setProfileImage] = useState<string>("/placeholder_profiles/placeholder5.png")
+    let [editorImage, setEditorImage] = useState<string | File>("/placeholder_profiles/placeholder5.png")
     let [isEditingImage, setIsEditingImage] = useState<Boolean>(false)
     let [isImageLoading, setImageLoading] = useState<Boolean>(false)
+    let newUploadRef = useRef<HTMLInputElement>(null)
     const editor = useAvatarEditor()
 
     useEffect(() => {
@@ -33,15 +35,18 @@ export default function Page() {
     }, [token])
 
     useEffect(() => {
-        const img = new Image()
-        img.crossOrigin = "anonymous"
-        img.src = user.profile
-
-        img.onload = () => {
-            setImage(img)
-            console.log(img)
-        }
+        const imageUrl = user.profile || "/placeholder_profiles/placeholder5.png"
+        setProfileImage(imageUrl)
+        setEditorImage(imageUrl)
     }, [user.profile])
+
+    const handleUploadImage = (event: ChangeEvent<HTMLInputElement>) => {
+        const file = event.target.files?.[0]
+        if (!file) return
+        setEditorImage(file)
+        setProfileImage(URL.createObjectURL(file))
+        event.target.value = ""
+    }
 
     const openPanel = (target: string) => {
         console.log(target)
@@ -56,6 +61,20 @@ export default function Page() {
         auth.clearToken();
         redirect('/')
     }
+
+    useEffect(() => {
+        setIsEditingImage(false)
+        const handleKeyDown = (event: KeyboardEvent) => {
+            console.log(event)
+            if (event.key === 'Escape') {
+                setIsEditingImage(false)
+            }
+        }
+        document.addEventListener('keydown', handleKeyDown)
+        return () => {
+            document.removeEventListener('keydown', handleKeyDown)
+        }
+    }, [])
 
     return (
         <div className='p-10'>
@@ -134,7 +153,7 @@ export default function Page() {
                                                     </div>
                                                     <div className="relative">
                                                         <img
-                                                            src={image.src || "/placeholder_profiles/placeholder5.png"}
+                                                            src={profileImage || "/placeholder_profiles/placeholder5.png"}
                                                             alt=""
                                                             className="w-2xs bg-zinc-300/50 rounded-full aspect-square object-cover"
                                                         />
@@ -154,23 +173,42 @@ export default function Page() {
                                                 >Log Out</button>
                                             </div>
                                             {isEditingImage &&
-                                                <div className='absolute top-0 left-0 w-screen h-screen backdrop-blur-lg'>
+                                                <div
+                                                    className='fixed top-0 left-0 w-screen h-screen backdrop-blur-lg'
+                                                >
                                                     <div className="absolute top-1/2 left-1/2 -translate-1/2 bg-zinc-100/80 p-10 px-14 rounded-2xl">
                                                         <h1 className={`${Syne.className} text-2xl px-1`}>Edit Profile</h1>
                                                         <div className="rounded-2xl overflow-hidden">
                                                             <AvatarEditor
                                                                 ref={editor.ref}
-                                                                image={image.src}
+                                                                image={editorImage}
                                                                 crossOrigin="anonymous"
-                                                                width={250}
-                                                                height={250}
-                                                                borderRadius={250 / 2}
+                                                                width={550}
+                                                                height={550}
+                                                                borderRadius={550 / 2}
                                                                 backgroundColor="black"
-                                                                gridColor="white"
-                                                                border={50}
+                                                                gridColor="gray"
                                                                 borderColor={[1, 1, 1, 1]}
+                                                                showGrid={true}
                                                             />
                                                         </div>
+                                                        <input
+                                                            ref={newUploadRef}
+                                                            type="file"
+                                                            id="profile"
+                                                            name='profile'
+                                                            accept="image/*"
+                                                            style={{ display: "none" }}
+                                                            onChange={handleUploadImage}
+                                                        />
+                                                        <button
+                                                            className="bg-zinc-700/80 text-white rounded-full px-5 py-2 mx-auto mt-1 w-full cursor-pointer"
+                                                            onClick={() => {
+                                                                newUploadRef?.current?.click()
+                                                            }}
+                                                        >
+                                                            Upload New Image
+                                                        </button>
                                                         <button
                                                             onClick={async () => {
                                                                 try {
@@ -180,6 +218,7 @@ export default function Page() {
                                                                         const dataUrl = canvas.toDataURL()
                                                                         // upload dataUrl to your server
                                                                         console.log(dataUrl)
+                                                                        setProfileImage(dataUrl)
                                                                         setImageLoading(true)
                                                                         await axios.patch('/account/profile', {
                                                                             profile: dataUrl,
