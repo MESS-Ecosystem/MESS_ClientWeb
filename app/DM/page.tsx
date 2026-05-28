@@ -68,7 +68,8 @@ export default function Page() {
         uid: string | null,
         displayName: string,
         isSent: boolean,
-        connection: Connection | null
+        connection: Connection | null,
+        senderName: string
     }
     interface TypingUser {
         id: string,
@@ -225,25 +226,51 @@ export default function Page() {
         //     }, ...prev]
         // })
 
-        setNotification(prev => {
+        // setNotification(prev => {
+        //     const next = [
+        //         {
+        //             userId: {},
+        //             content: data.data.message,
+        //             timeStamp: data.data.timestamp,
+        //             username: data.data.username
+        //         },
+        //         ...prev
+        //     ]
+        //     console.log('NEXT:', next)
+        //     return next
+        // })
 
-            console.log('PREV:', prev)
-            console.log(Array.isArray(prev))
-
+        setNotification((prev: any) => {
+            const existingIndex = prev.findIndex(
+                (item: any) =>
+                    item.username?.toLowerCase() ===
+                    data.data.username?.toLowerCase()
+            )
+            // user already exists
+            if (existingIndex !== -1) {
+                const updated = [...prev]
+                updated[existingIndex] = {
+                    ...updated[existingIndex],
+                    content: data.data.message,
+                    timeStamp: data.data.timestamp,
+                    unreadCount:
+                        (updated[existingIndex].unreadCount || 0) + 1
+                }
+                // console.log('UPDATED:', updated)
+                return updated
+            }
+            // new user notification
             const next = [
-
                 {
                     userId: {},
                     content: data.data.message,
                     timeStamp: data.data.timestamp,
-                    username: data.data.username
+                    username: data.data.username,
+                    unreadCount: 1
                 },
-
                 ...prev
             ]
-
-            console.log('NEXT:', next)
-
+            // console.log('NEXT:', next)
             return next
         })
     }
@@ -295,6 +322,7 @@ export default function Page() {
                 uid: '', // will be provided by socketid, will be added later, 
                 isSent: true,
                 connection: null, // just for a fallback, not used on server
+                senderName: username
             }
             setMessHistory(prev => [...prev, data])
             setInput((prev) => {
@@ -325,32 +353,6 @@ export default function Page() {
         })
         setIsSearching(false)
     }
-    useEffect(() => {
-        const fetchUsers = async () => {
-            // using direct get requests, for testing
-            // will be changed to specific websocket connection, that only gets status
-            let users: any = await axios.get(`${process.env.NEXT_PUBLIC_SERVER_API_URL}/dmusers`)
-            console.log('user from DB: ', users)
-            // if(users === []) {
-            if (users.data == null || users?.data?.length == 0) {
-                setAvailableUsers(
-                    [{
-                        id: 'ANBTHPQDGcmiC2qyAAAJ',
-                        username: 'Test User',
-                        profile: 'placeholder5.png'
-                    }]
-                )
-            } else {
-                console.log(users.data);
-                const profileusers = users.data?.map((user: any) => ({
-                    ...user,
-                    profile: `placeholder${Math.floor(Math.random() * 7)}.png`
-                }));
-                setAvailableUsers(profileusers);
-            }
-        }
-        username && fetchUsers();
-    }, [username])
 
     useEffect(() => {
         console.log(availableUsers)
@@ -385,14 +387,15 @@ export default function Page() {
             socket.on('is-typing', handleIsTyping)
             // socket.on('currentroom', currentRoom)
             socket.on('get-all-messages', (messages) => {
-                // console.log('older messages: ', messages)
+                console.log('older messages: ', messages)
                 let messageArray = messages.map((singlemessage: any) => {
                     return {
                         message: singlemessage.content,
                         uid: '',
                         displayName: '',
                         isSent: username === singlemessage.senderId,
-                        connection: null
+                        connection: null,
+                        senderName: singlemessage.senderName,
                     }
                 })
                 setMessHistory(messageArray);
@@ -483,7 +486,7 @@ export default function Page() {
                                         onClick={() => addUserToChatlist(user)}
                                         key={index}
                                     >
-                                        <img src={user.profile} className='max-w-16 bg-zinc-500 m-1 rounded-full aspect-square object-cover' alt="" />
+                                        <img src={user.profile || "/placeholder_profiles/placeholder5.png"} className='max-w-16 bg-zinc-500 m-1 rounded-full aspect-square object-cover' alt="" />
                                         <div className='flex flex-col flex-wrap justify-center px-5 py-3'>
                                             <p className={`${Syne.className} text-3xl leading-6`}>{user.username}</p>
                                             <p className='text-zinc-500 text-sm leading-4'>{user.phone}</p>
@@ -496,7 +499,7 @@ export default function Page() {
                                 }}
                             >
                                 <svg width="28px" height="28px" viewBox="0 0 24 24" fill="none">
-                                    <path fill-rule="evenodd" clip-rule="evenodd" d="M5.29289 5.29289C5.68342 4.90237 6.31658 4.90237 6.70711 5.29289L12 10.5858L17.2929 5.29289C17.6834 4.90237 18.3166 4.90237 18.7071 5.29289C19.0976 5.68342 19.0976 6.31658 18.7071 6.70711L13.4142 12L18.7071 17.2929C19.0976 17.6834 19.0976 18.3166 18.7071 18.7071C18.3166 19.0976 17.6834 19.0976 17.2929 18.7071L12 13.4142L6.70711 18.7071C6.31658 19.0976 5.68342 19.0976 5.29289 18.7071C4.90237 18.3166 4.90237 17.6834 5.29289 17.2929L10.5858 12L5.29289 6.70711C4.90237 6.31658 4.90237 5.68342 5.29289 5.29289Z"
+                                    <path fillRule="evenodd" clipRule="evenodd" d="M5.29289 5.29289C5.68342 4.90237 6.31658 4.90237 6.70711 5.29289L12 10.5858L17.2929 5.29289C17.6834 4.90237 18.3166 4.90237 18.7071 5.29289C19.0976 5.68342 19.0976 6.31658 18.7071 6.70711L13.4142 12L18.7071 17.2929C19.0976 17.6834 19.0976 18.3166 18.7071 18.7071C18.3166 19.0976 17.6834 19.0976 17.2929 18.7071L12 13.4142L6.70711 18.7071C6.31658 19.0976 5.68342 19.0976 5.29289 18.7071C4.90237 18.3166 4.90237 17.6834 5.29289 17.2929L10.5858 12L5.29289 6.70711C4.90237 6.31658 4.90237 5.68342 5.29289 5.29289Z"
                                         fill="#000000" />
                                 </svg>
                             </div>
@@ -524,7 +527,7 @@ export default function Page() {
                             return (
                                 <div key={id} onClick={() => ChatWithID(user)} className='flex flex-row flex-wrap cursor-pointer items-center justify-between w-full text-xl font-semibold bg-white px-5 py-3 rounded-2xl'>
                                     <div className='flex flex-row flex-wrap items-center gap-5'>
-                                        <img src={user.profile} className='max-w-16 bg-zinc-500 rounded-full aspect-square object-cover' alt="" />
+                                        <img src={user.profile || "/placeholder_profiles/placeholder5.png"} className='max-w-16 bg-zinc-500 rounded-full aspect-square object-cover' alt="" />
                                         <div className='flex flex-col flex-wrap'>
                                             <p>{user.username}</p>
                                             <div className='notify text-sm text-zinc-500'>
@@ -547,15 +550,16 @@ export default function Page() {
                                             </div>
                                         </div>
                                     </div>
-                                    <div className='bg-emerald-300 text-emerald-700 aspect-square w-8 h-8 text-center flex flex-row flex-wrap justify-center items-center rounded-full text-base font-mono leading-0'>
-                                        <p className='mx-auto my-auto p-0'>
-                                            {notification.map((notify: any, index: any) => {
-                                                if (notify.username.toString().toLowerCase() == user.username.toString().toLowerCase()) {
-                                                    return notify.unreadCount
-                                                }
-                                            })}
-                                        </p>
-                                    </div>
+                                    {notification.map((notify: any, index: any) => {
+                                        if (notify.username.toString().toLowerCase() == user.username.toString().toLowerCase()) {
+                                            return <div className='bg-emerald-300 text-emerald-700 aspect-square w-8 h-8 text-center flex flex-row flex-wrap justify-center items-center rounded-full text-base font-mono leading-0'>
+                                                <p className='mx-auto my-auto p-0'>
+                                                    {notify.unreadCount}
+                                                </p>
+                                            </div>
+                                        }
+                                    })}
+
                                 </div>
                             )
                         })}
@@ -575,7 +579,7 @@ export default function Page() {
                             <div className='chat-header w-full h-16 flex flex-row flex-wrap items-center justify-between gap-2 px-5 rounded-2xl text-2xl bg-white '>
 
                                 <div className='flex flex-row flex-wrap items-center'>
-                                    <img src={selectedChat.profile} className='max-w-12 bg-zinc-500 rounded-full aspect-square object-cover' alt="" />
+                                    <img src={selectedChat.profile || "/placeholder_profiles/placeholder5.png"} className='max-w-12 bg-zinc-500 rounded-full aspect-square object-cover' alt="" />
                                     <p className='ps-5 font-semibold'>{selectedChat.username}</p>
                                 </div>
                                 {/* <div className='text-xl font-semibold flex flex-wrap items-center'>
@@ -587,9 +591,10 @@ export default function Page() {
 
                             <div className='mx-auto max-w-2xl pb-24 overflow-y-scroll max-h-[calc(100vh-180px)] min-h-[calc(100vh-180px)]'>
                                 {MessHistory.map((MESS, KEY) => {
+                                    console.log(KEY, MESS)
                                     return (
                                         <div key={KEY}>
-                                            <MessageBlock displayName={selectedChat.username} UserID={MESS.uid} Message={MESS.message} isSent={MESS.isSent} ></MessageBlock>
+                                            <MessageBlock displayName={selectedChat.username} UserID={MESS.uid} Message={MESS.message} isSent={(MESS?.senderName?.toString()?.toLowerCase() == username?.toString().toLowerCase()) || MESS.isSent} ></MessageBlock>
                                         </div>
                                     )
                                 })}
