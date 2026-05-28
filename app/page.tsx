@@ -1,7 +1,11 @@
+'use client'
 // import 
 import { Bricolage_Grotesque, Syne as SyneRaw } from 'next/font/google';
 import LocomotiveScroll from './Providers/LocomotiveScroll'
 import { Link } from 'next-transition-router';
+import axios from 'axios';
+import { useEffect } from 'react';
+import { auth } from '@/lib/auth';
 const Grotesque: any = Bricolage_Grotesque({
   preload: true
 })
@@ -10,6 +14,22 @@ const Syne: any = SyneRaw({
 })
 
 export default function Home() {
+  let token = auth.token()
+  const refreshToken = async () => {
+    let res = await axios.get('/api/auth/refresh', {
+      headers: {
+        Authorization: `Bearer ${token}`
+      }
+    })
+    console.log(res)
+
+    if (res.status == 200) {
+      if (res.data.token) auth.setToken(res.data.token)
+    }
+  }
+  useEffect(() => {
+    refreshToken();
+  }, [])
   return (
     <div className='dark:bg-zinc-900 dark:text-white'>
       <LocomotiveScroll>

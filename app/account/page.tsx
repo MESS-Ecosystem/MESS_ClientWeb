@@ -25,13 +25,11 @@ export default function Page() {
     const editor = useAvatarEditor()
 
     useEffect(() => {
-
         if (!token) {
             setUser({ username: "Anonymous" });
             return;
         }
         setUser(jwt.decode(token))
-
     }, [token])
 
     useEffect(() => {
@@ -61,6 +59,22 @@ export default function Page() {
         auth.clearToken();
         redirect('/')
     }
+    const refreshToken = async () => {
+        let res = await axios.get('/api/auth/refresh', {
+            headers: {
+                Authorization: `Bearer ${token}`
+            }
+        })
+        console.log(res)
+
+        if (res.status == 200) {
+            if (res.data.token) auth.setToken(res.data.token)
+        }
+        if (token) (setUser(jwt.decode(token)))
+    }
+    useEffect(() => {
+        refreshToken();
+    }, [])
 
     useEffect(() => {
         setIsEditingImage(false)
@@ -188,7 +202,7 @@ export default function Page() {
                                                                 borderRadius={550 / 2}
                                                                 backgroundColor="black"
                                                                 gridColor="gray"
-                                                                borderColor={[1, 1, 1, 1]}
+                                                                // borderColor={[1, 1, 1, 1]}
                                                                 showGrid={true}
                                                             />
                                                         </div>
@@ -220,10 +234,25 @@ export default function Page() {
                                                                         console.log(dataUrl)
                                                                         setProfileImage(dataUrl)
                                                                         setImageLoading(true)
-                                                                        await axios.patch('/account/profile', {
-                                                                            profile: dataUrl,
-                                                                        })
+                                                                        if (user.profile) {
+                                                                            await axios.patch('/api/account/profile', {
+                                                                                profile: dataUrl,
+                                                                            }, {
+                                                                                headers: {
+                                                                                    Authorization: `Bearer ${token}`
+                                                                                }
+                                                                            })
+                                                                        } else {
+                                                                            await axios.post('/api/account/profile', {
+                                                                                profile: dataUrl,
+                                                                            }, {
+                                                                                headers: {
+                                                                                    Authorization: `Bearer ${token}`
+                                                                                }
+                                                                            })
+                                                                        }
                                                                         setImageLoading(false)
+                                                                        refreshToken()
                                                                     }
                                                                     setIsEditingImage(false)
                                                                 } catch (error) {
