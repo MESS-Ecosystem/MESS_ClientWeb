@@ -12,23 +12,32 @@ const Grotesque: any = Bricolage_Grotesque({
 
 export default function Header() {
 
-    // let token = auth.token()
+    let token = auth.token()
     // let username = ''
     // if (token) {
     //     let user: any = jwt.decode(token);
     //     username = user.username
     // }
 
-    const [username, setUsername] = useState('');
+    let [user, setUser] = useState<any>({})
+    // useEffect(() => {
+
+    //     if (!token) {
+    //         setUser({ username: "Anonymous" });
+    //         return;
+    //     }
+    //     setUser(jwt.decode(token))
+
+    // }, [token])
     useEffect(() => {
         const updateUser = () => {
             let token = auth.token();
             if (!token) {
-                setUsername('');
+                setUser({ username: "" });
                 return;
             }
             let user: any = jwt.decode(token);
-            setUsername(user.username);
+            setUser(user);
         };
         updateUser();
         const unsubscribe = auth.subscribe(updateUser); // passing the function here, that will be called by auth, when the token updates
@@ -41,15 +50,15 @@ export default function Header() {
                 <Link href={'/'} className={Grotesque.className + ' text-4xl font-semibold upper'}>Mess<p className='text-lg ps-3 inline text-zinc-400'>~withanyone</p></Link>
                 <div className='flex flex-row flex-wrap items-center gap-4'>
                     {/* <button className='me-2' onClick={toggleTheme}>Toggle Theme</button> */}
-                    <img src="/dark-mode.svg" onClick={toggleTheme} alt="" className='h-7 w-7 dark:invert dark:rotate-360 duration-500 ease-out'/>
-                    {username ?
+                    <img src="/dark-mode.svg" onClick={toggleTheme} alt="" className='h-7 w-7 dark:invert dark:rotate-360 duration-500 ease-out' />
+                    {user.username ?
                         <div className='flex flex-row flex-wrap gap-2'>
                             <img
-                                src={`/placeholder_profiles/placeholder${Math.floor(Math.random() * 7)}.png`}
+                                src={`${user?.profile || "/placeholder_profiles/placeholder5.png"}`}
                                 alt=""
-                                className='max-w-8 max-h-8 min-h-6 min-w-6 w-auto h-auto rounded-full'
+                                className='max-w-8 max-h-8 min-h-6 min-w-6 w-auto h-auto aspect-square object-cover rounded-full'
                             />
-                            <Link href={'/account'} className={Grotesque.className + ' font-normal text-2xl tracking-tight cursor-pointer duration-300 ease-out hover:font-semibold'}>{username}</Link>
+                            <Link href={'/account'} className={Grotesque.className + ' font-normal text-2xl tracking-tight cursor-pointer duration-300 ease-out hover:font-semibold'}>{user.username}</Link>
                         </div>
                         :
                         <Link href={'/login'} className={Grotesque.className + ' font-normal text-2xl tracking-tight cursor-pointer duration-300 ease-out hover:font-semibold'}>Login</Link>

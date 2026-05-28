@@ -1,12 +1,15 @@
 
 'use client';
 import { useState } from 'react';
-import { Bricolage_Grotesque } from 'next/font/google';
+import { Bricolage_Grotesque, Syne as SyneRaw } from 'next/font/google';
 import axios from 'axios';
 import { redirect, useSearchParams } from 'next/navigation';
 import { auth } from '@/lib/auth';
 
 const Grotesque = Bricolage_Grotesque({
+    preload: true
+});
+const Syne = SyneRaw({
     preload: true
 });
 
@@ -156,7 +159,7 @@ export default function LoginPage() {
                 <div className=" absolute top-1/2 left-0 -rotate-90 -translate-full duration-300 flex gap-6 mb-12 border-b border-gray-200">
                     <button
                         onClick={() => !loading && setIsLogin(true)}
-                        className={`pb-4 text-lg font-medium transition-all duration-300 ${isLogin
+                        className={` ${Syne.className} pb-4 text-lg font-medium transition-all duration-300 ${isLogin
                             ? 'text-black dark:text-zinc-200 border-b-2 border-black dark:border-white'
                             : 'text-gray-400 dark:text-zinc-400 border-b-0 border-black dark:border-white dark:hover:text-zinc-300 hover:text-gray-600'
                             }`}
@@ -165,7 +168,7 @@ export default function LoginPage() {
                     </button>
                     <button
                         onClick={() => !loading && setIsLogin(false)}
-                        className={`pb-4 text-lg font-medium transition-all duration-300 ${isLogin
+                        className={` ${Syne.className} pb-4 text-lg font-medium transition-all duration-300 ${isLogin
                             ? 'text-gray-400 dark:text-zinc-400 border-b-0 border-black dark:border-white dark:hover:text-zinc-300 hover:text-gray-600'
                             : 'text-black dark:text-zinc-200 border-b-2 border-black dark:border-white'
                             }`}
@@ -221,7 +224,7 @@ export default function LoginPage() {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className="w-full py-3 px-4 bg-black text-white font-medium rounded-lg hover:bg-gray-900 dark:hover:bg-zinc-950 disabled:bg-gray-400 disabled:cursor-wait duration-200 mt-8 text-base"
+                                className={` ${Syne.className} w-full py-3 px-4 bg-black text-white font-medium rounded-lg hover:bg-gray-900 dark:hover:bg-zinc-950 disabled:bg-gray-400 disabled:cursor-wait duration-200 mt-8 text-base`}
                             >
                                 {loading ? 'Logging in...' : 'Login'}
                             </button>
@@ -315,7 +318,7 @@ export default function LoginPage() {
                             <button
                                 type="submit"
                                 disabled={loading}
-                                className={`w-full py-3 px-4 bg-black text-white font-medium rounded-lg hover:bg-gray-900  dark:hover:bg-zinc-950 disabled:bg-gray-400 transition-colors duration-200 mt-8 text-base ${isRegistered && 'bg-emerald-300 !text-black'}`}
+                                className={` ${Syne.className} w-full py-3 px-4 bg-black text-white font-medium rounded-lg hover:bg-gray-900  dark:hover:bg-zinc-950 disabled:bg-gray-400 transition-colors duration-200 mt-8 text-base ${isRegistered && 'bg-emerald-300 !text-black'}`}
                             >
                                 {loading ? 'Creating account...' : isRegistered ? 'Account Created Successfully' : 'Register'}
                             </button>
@@ -332,7 +335,7 @@ export default function LoginPage() {
                                 !loading && setIsLogin(!isLogin);
                                 !loading && setError('');
                             }}
-                            className="text-black dark:text-white font-medium hover:underline transition-all"
+                            className={`${Syne.className}  text-black dark:text-white font-medium hover:underline transition-all`}
                         >
                             {isLogin ? 'Register' : 'Login'}
                         </button>

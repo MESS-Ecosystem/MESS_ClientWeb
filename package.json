@@ -15,6 +15,7 @@
     "next": "16.2.2",
     "next-transition-router": "^0.2.11",
     "react": "19.2.4",
+    "react-avatar-editor": "^15.1.0",
     "react-dom": "19.2.4",
     "socket.io-client": "^4.8.3"
   },

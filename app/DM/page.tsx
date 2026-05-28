@@ -1,5 +1,5 @@
 'use client';
-import { DM_Sans, Bricolage_Grotesque } from "next/font/google";
+import { Bricolage_Grotesque, Syne as SyneRaw } from "next/font/google";
 import axios from "axios";
 import { ChangeEvent, useEffect, useRef, useState } from "react";
 import { socket } from "../DMSocket";
@@ -8,7 +8,7 @@ import MessageBlock from "../Components/MessageBlock";
 import { auth } from "@/lib/auth";
 import jwt from 'jsonwebtoken'
 import { redirect } from "next/navigation";
-const DMSans: any = DM_Sans({
+const Syne: any = SyneRaw({
     preload: true
 })
 const Grotesque: any = Bricolage_Grotesque({
@@ -452,7 +452,7 @@ export default function Page() {
                 <div className='absolute top-0 left-0 backdrop-blur-sm w-screen h-screen z-40'>
                     <div className='bg-white absolute top-1/2 left-1/2 -translate-1/2 rounded-2xl py-10 px-14'>
                         <div className='w-full h-full relative'>
-                            <h3 className='text-3xl font-medium'>Find Users</h3>
+                            <h3 className={` ${Syne.className} text-3xl font-medium`}>Find Users</h3>
                             <form className='py-5'>
                                 <input
                                     type="text"
@@ -472,7 +472,7 @@ export default function Page() {
                                         <div className="w-full h-full bg-zinc-300 rounded-full"></div>
                                     </div>
                                     <div className='flex flex-col flex-wrap justify-center gap-2 px-5 py-3 w-[calc(100%-70px)] h-full'>
-                                        <div className={`${Grotesque.className} bg-zinc-400 leading-6 w-full h-3 rounded-2xl`}></div>
+                                        <div className={`${Syne.className} bg-zinc-400 leading-6 w-full h-3 rounded-2xl`}></div>
                                         <div className='bg-zinc-200 text-sm leading-4 w-full h-2 rounded-2xl'></div>
                                     </div>
                                 </div>
@@ -485,7 +485,7 @@ export default function Page() {
                                     >
                                         <img src={user.profile} className='max-w-16 bg-zinc-500 m-1 rounded-full aspect-square object-cover' alt="" />
                                         <div className='flex flex-col flex-wrap justify-center px-5 py-3'>
-                                            <p className={`${Grotesque.className} text-3xl leading-6`}>{user.username}</p>
+                                            <p className={`${Syne.className} text-3xl leading-6`}>{user.username}</p>
                                             <p className='text-zinc-500 text-sm leading-4'>{user.phone}</p>
                                         </div>
                                     </div>
@@ -511,7 +511,7 @@ export default function Page() {
                 style={{ minHeight: "calc(100vh - 64px)" }}
             >
                 <div className='dark:bg-white/20 bg-black/10 w-full h-full p-3 rounded-3xl'>
-                    <h3 className={` ${DMSans.className} text-4xl font-light tracking-tight ps-5 pt-3 wrap-anywhere`}>Messages</h3>
+                    <h3 className={` ${Syne.className} text-4xl font-light tracking-tight ps-5 pt-3 wrap-anywhere`}>Messages</h3>
                     <div
                         className='flex flex-row flex-wrap items-center justify-between gap-3 bg-white/60 rounded-2xl py-2 px-5 my-2 cursor-pointer'
                         onClick={handleSearchUser}

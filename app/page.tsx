@@ -1,8 +1,11 @@
 // import 
-import { Bricolage_Grotesque } from 'next/font/google';
+import { Bricolage_Grotesque, Syne as SyneRaw } from 'next/font/google';
 import LocomotiveScroll from './Providers/LocomotiveScroll'
 import { Link } from 'next-transition-router';
 const Grotesque: any = Bricolage_Grotesque({
+  preload: true
+})
+const Syne: any = SyneRaw({
   preload: true
 })
 
@@ -17,7 +20,7 @@ export default function Home() {
               <div className='bg-white dark:bg-zinc-900'>OR</div>
             </div>
           </div>
-          <Link href={'/DM'} className={'text-4xl font-light ps-6.5 pt-2'}>DM</Link>
+          <Link href={'/DM'} className={` ${Syne.className} text-4xl font-light ps-6.5 pt-2`}>DM</Link>
         </div>
       </LocomotiveScroll>
     </div>
